@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import type { ImageRead } from '../types';
 import { ImagePlaceholderIcon } from './icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { API_BASE_URL } from '../constants';
 
 interface ImageCardProps {
   image: ImageRead;
@@ -10,11 +11,19 @@ interface ImageCardProps {
   forceSquare?: boolean; // New prop, defaults to true
 }
 
+const getRelativeUrl = (absoluteUrl: string | null | undefined): string | null | undefined => {
+  if (absoluteUrl && absoluteUrl.startsWith(API_BASE_URL)) {
+    return absoluteUrl.substring(API_BASE_URL.length);
+  }
+  return absoluteUrl;
+};
+
 const ImageCard: React.FC<ImageCardProps> = ({ image, onClick, forceSquare = true }) => {
   const { theme } = useTheme();
   const [imageLoadError, setImageLoadError] = useState(false);
   
-  const primarySrc = image.thumbnail_url || image.image_url;
+  const primarySrcAbsolute = image.thumbnail_url || image.image_url;
+  const primarySrc = getRelativeUrl(primarySrcAbsolute);
 
   useEffect(() => {
     setImageLoadError(false); // Reset error state if image prop changes
