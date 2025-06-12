@@ -141,7 +141,7 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
     }
 
     setIsLoading(true); 
-    setError(null); 
+    // setError(null); // Error is now cleared before calling this in useEffect
     setCategoryResult(null); 
     setImageResults([]); 
     setIsDropdownOpen(true);
@@ -152,7 +152,7 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
       if (foundInContext) {
         setCategoryResult(foundInContext as CategoryRead); 
         setSearchMode('specific_search_category_found'); 
-        setError(null); // Explicitly clear error
+        setError(null);
         setIsLoading(false); 
         return;
       }
@@ -162,7 +162,7 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
       const categoryData = await getCategoryByName(trimmedQuery);
       setCategoryResult(categoryData); 
       setSearchMode('specific_search_category_found');
-      setError(null); // Explicitly clear error
+      setError(null); 
     } catch (catError: any) {
       if (catError.status === 404) {
         try {
@@ -170,12 +170,12 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
           if (imagesData.length > 0) { 
             setImageResults(imagesData); 
             setSearchMode('specific_search_images_found'); 
-            setError(null); // Explicitly clear error
+            setError(null); 
           } else {
             const knownTagExists = allKnownTags.some(tag => tag.name.toLowerCase() === trimmedQuery.toLowerCase());
             if (knownTagExists) {
               setSearchMode('specific_search_tag_link_only');
-              setError(null); // Explicitly clear error as we are showing a link
+              setError(null); 
             } else {
               setError({ message: `No category, images, or matching tag found for "${trimmedQuery}".` }); 
               setSearchMode('specific_search_no_results');
@@ -185,7 +185,7 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
           const knownTagExists = allKnownTags.some(tag => tag.name.toLowerCase() === trimmedQuery.toLowerCase());
           if (knownTagExists) {
             setSearchMode('specific_search_tag_link_only');
-            setError(null); // Explicitly clear error
+            setError(null); 
           } else {
             setError(imgError as ApiError || { message: "Error searching images by tag."}); 
             setSearchMode('specific_search_error');
@@ -212,7 +212,7 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
                 allTagsFromApiRef.current = apiTags;
                 setTagsForBrowsing(apiTags.slice(0, 100));
                 setSearchMode(apiTags.length > 0 ? 'browsing_all_tags' : 'no_tags_to_browse');
-                setError(null); // Clear error on successful fetch
+                setError(null);
             } catch (err) {
                 setError(err as ApiError);
                 setSearchMode('no_tags_to_browse'); 
@@ -224,20 +224,25 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
             setTagsForBrowsing(allTagsFromApiRef.current.slice(0, 100));
             setSearchMode(allTagsFromApiRef.current.length > 0 ? 'browsing_all_tags' : 'no_tags_to_browse');
             setIsLoading(false); 
-            setError(null); // Clear error when using cached tags
+            setError(null);
         }
         setIsDropdownOpen(true);
     };
 
     if (isVisibleInPortal) {
         if (debouncedQuery.trim()) {
+            setError(null); // Explicitly clear error before a new specific search
             setTagsForBrowsing([]); 
             performSpecificSearch(debouncedQuery, allTagsFromApiRef.current);
         } else if (!query.trim()) { 
+            // Error is cleared within fetchAllTagsIfNeededAndSetBrowsingMode on success/cache use
             fetchAllTagsIfNeededAndSetBrowsingMode();
         } else {
+            // This case handles when query might have content (e.g. whitespace) but debouncedQuery is empty,
+            // or user cleared input rapidly. We are not searching, so clear any errors.
             setSearchMode('initial_or_empty');
             setIsDropdownOpen(false);
+            setError(null); 
         }
     } else {
         setQuery(''); setDebouncedQuery('');
