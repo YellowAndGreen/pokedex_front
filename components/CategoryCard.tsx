@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { CategoryRead } from '../types';
-// import { DEFAULT_CATEGORY_THUMBNAIL } from '../constants'; // No longer using DEFAULT_CATEGORY_THUMBNAIL directly for src
 import { ImagePlaceholderIcon } from './icons'; 
 import { useTheme } from '../contexts/ThemeContext';
+import { API_BASE_URL } from '../constants';
 
 interface CategoryCardProps {
   category: CategoryRead;
@@ -11,9 +12,18 @@ interface CategoryCardProps {
   displayIndex?: number;
 }
 
+const getRelativeUrl = (absoluteUrl: string | null | undefined): string | null | undefined => {
+  if (absoluteUrl && absoluteUrl.startsWith(API_BASE_URL)) {
+    return absoluteUrl.substring(API_BASE_URL.length);
+  }
+  return absoluteUrl;
+};
+
 const CategoryCard: React.FC<CategoryCardProps> = ({ category, showCompactDetails = false, displayIndex }) => {
   const { theme } = useTheme();
   const [imageLoadError, setImageLoadError] = useState(false);
+
+  const transformedThumbnailUrl = getRelativeUrl(category.thumbnail_url);
 
   useEffect(() => {
     // Reset error state when category or its thumbnail_url changes
@@ -40,16 +50,16 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ category, showCompactDetail
       aria-label={`View category: ${category.name}`}
     >
       <div className={imageContainerBaseClasses}>
-        {category.thumbnail_url && !imageLoadError ? (
+        {transformedThumbnailUrl && !imageLoadError ? (
           <img 
-            src={category.thumbnail_url} 
+            src={transformedThumbnailUrl} 
             alt={category.name} 
             className={imageClasses}
             onError={() => setImageLoadError(true)}
           />
         ) : (
           // Fallback: no thumbnail_url OR it failed to load
-          <div className={`w-full h-full flex items-center justify-center ${theme.skeletonBase} ${ (category.thumbnail_url && imageLoadError) ? theme.skeletonHighlight : '' }`}>
+          <div className={`w-full h-full flex items-center justify-center ${theme.skeletonBase} ${ (transformedThumbnailUrl && imageLoadError) ? theme.skeletonHighlight : '' }`}>
             <ImagePlaceholderIcon className={`w-10 h-10 sm:w-12 sm:h-12 opacity-60 ${theme.card.secondaryText}`} />
           </div>
         )}
