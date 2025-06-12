@@ -49,24 +49,8 @@ const PieChart: React.FC<PieChartProps> = ({ data, colors }) => {
           padding: [10, 5, 5, 5], // Reduced top padding
           itemGap: 8,
         },
-        toolbox: {
-          show: true,
-          right: 20,
-          top: 5, // Reduced top margin
-          feature: {
-            mark: { show: true },
-            dataView: { show: true, readOnly: false, title: '数据视图', lang: ['数据视图', '关闭', '刷新'] },
-            restore: { show: true, title: '还原' },
-            saveAsImage: { show: true, title: '保存图片', backgroundColor: theme.card.bg } 
-          },
-          iconStyle: {
-            borderColor: theme.card.secondaryText,
-          },
-          emphasis: {
-             iconStyle: {
-                borderColor: theme.brandColor,
-             }
-          }
+        toolbox: { // Toolbox is now hidden
+          show: false,
         },
         series: [
           {
