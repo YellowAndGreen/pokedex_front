@@ -1,0 +1,10 @@
+
+[
+  { "name": "北京", "fixedReports": 39, "fixedSpecies": 165, "casualReports": 0, "casualSpecies": 0, "totalSpecies": 165 },
+  { "name": "四川", "fixedReports": 13,  "fixedSpecies": 90,  "casualReports": 0, "casualSpecies": 0, "totalSpecies": 90 },
+  { "name": "天津", "fixedReports": 2,  "fixedSpecies": 22,  "casualReports": 0, "casualSpecies": 0, "totalSpecies": 22 },
+  { "name": "山东", "fixedReports": 2,  "fixedSpecies": 32,  "casualReports": 0, "casualSpecies": 0, "totalSpecies": 32 },
+  { "name": "河北", "fixedReports": 5,  "fixedSpecies": 67,  "casualReports": 0, "casualSpecies": 0, "totalSpecies": 67 },
+  { "name": "湖北", "fixedReports": 5,  "fixedSpecies": 68,  "casualReports": 1, "casualSpecies": 2, "totalSpecies": 68 },
+  { "name": "福建", "fixedReports": 3,  "fixedSpecies": 53,  "casualReports": 0, "casualSpecies": 0, "totalSpecies": 53 }
+]
