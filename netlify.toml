@@ -1,0 +1,7 @@
+# netlify.toml
+
+[[redirects]]
+  from = "/api/*"
+  to = "http://39.107.88.124:8000/api/:splat"
+  status = 200
+  force = true
