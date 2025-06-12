@@ -9,7 +9,7 @@ import LoadingSpinner from './LoadingSpinner';
 import ErrorDisplay from './ErrorDisplay';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCategories } from '../contexts/CategoryContext';
-import { IMAGE_BASE_URL } from '../constants';
+import { IMAGE_BASE_URL } from '../constants'; // Added IMAGE_BASE_URL import
 
 interface CategorySearchProps {
   isExpanded: boolean;
@@ -18,16 +18,15 @@ interface CategorySearchProps {
 }
 
 type SearchMode = 
-  'initial_or_empty' |
-  'browsing_all_tags' |
-  'no_tags_to_browse' |
-  'specific_search_loading' |
-  'specific_search_category_found' |          // Single exact category from API
-  'specific_search_prefix_categories_found' | // Multiple categories from client-side prefix search
-  'specific_search_images_found' |
-  'specific_search_tag_link_only' |
-  'specific_search_no_results' |
-  'specific_search_error';
+  'initial_or_empty' |                // Default, or query cleared but not yet processing
+  'browsing_all_tags' |               // Query is empty, dropdown shows all available tags
+  'no_tags_to_browse' |               // Query is empty, no tags available in the system
+  'specific_search_loading' |         // Actively searching for specific query
+  'specific_search_category_found' |  // Category by name found
+  'specific_search_images_found' |    // Images by tag found
+  'specific_search_tag_link_only' |   // Tag exists (from allTagsFromApiRef), but searchImagesByTag yielded no images or failed.
+  'specific_search_no_results' |      // Nothing found for the specific query (not a category, no images by tag, not a known browsable tag)
+  'specific_search_error';            // API error during specific search, not covered by other states
 
 const ANIMATION_DURATION = 300; 
 
@@ -46,7 +45,7 @@ interface ImageResultItemProps {
 const ImageResultItem: React.FC<ImageResultItemProps> = ({ image, onClick }) => {
   const { theme } = useTheme();
   const [loadError, setLoadError] = useState(false);
-  const src = getRelativeUrl(image.thumbnail_url); 
+  const src = getRelativeUrl(image.thumbnail_url); // Transform URL
 
   useEffect(() => {
     setLoadError(false);
@@ -78,11 +77,10 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   
-  const [categoryResult, setCategoryResult] = useState<CategoryRead | null>(null); // For exact API match
-  const [prefixCategoryResults, setPrefixCategoryResults] = useState<CategoryRead[]>([]); // For client-side prefix matches
+  const [categoryResult, setCategoryResult] = useState<CategoryRead | null>(null);
   const [imageResults, setImageResults] = useState<ImageRead[]>([]);
-  const [tagsForBrowsing, setTagsForBrowsing] = useState<TagRead[]>([]);
-  const allTagsFromApiRef = useRef<TagRead[]>([]);
+  const [tagsForBrowsing, setTagsForBrowsing] = useState<TagRead[]>([]); // For displaying in "browse tags" mode
+  const allTagsFromApiRef = useRef<TagRead[]>([]); // Stores all tags fetched once
 
   const [searchMode, setSearchMode] = useState<SearchMode>('initial_or_empty');
 
@@ -138,71 +136,68 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
 
   const performSpecificSearch = useCallback(async (searchQuery: string, allKnownTags: TagRead[]) => {
     const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) {
+      return;
+    }
 
-    setIsLoading(true);
-    setError(null);
-    setCategoryResult(null);
-    setImageResults([]);
-    setPrefixCategoryResults([]);
+    setIsLoading(true); 
+    setError(null); 
+    setCategoryResult(null); 
+    setImageResults([]); 
     setIsDropdownOpen(true);
     setSearchMode('specific_search_loading');
 
-    // 1. Client-side Prefix Search for Categories
     if (!isLoadingCategoriesContext && allCategoriesFromContext && allCategoriesFromContext.length > 0) {
-      const matchedPrefixCategories = allCategoriesFromContext.filter(
-        cat => cat.name.toLowerCase().startsWith(trimmedQuery.toLowerCase())
-      );
-      if (matchedPrefixCategories.length > 0) {
-        setPrefixCategoryResults(matchedPrefixCategories);
-        setSearchMode('specific_search_prefix_categories_found');
-        setIsLoading(false);
+      const foundInContext = allCategoriesFromContext.find(cat => cat.name.toLowerCase() === trimmedQuery.toLowerCase());
+      if (foundInContext) {
+        setCategoryResult(foundInContext as CategoryRead); 
+        setSearchMode('specific_search_category_found'); 
+        setError(null); // Explicitly clear error
+        setIsLoading(false); 
         return;
       }
     }
 
-    // 2. API Search for Exact Category Name (if no client-side prefix match or context unavailable)
     try {
       const categoryData = await getCategoryByName(trimmedQuery);
-      setCategoryResult(categoryData);
+      setCategoryResult(categoryData); 
       setSearchMode('specific_search_category_found');
-      setIsLoading(false);
-      return;
+      setError(null); // Explicitly clear error
     } catch (catError: any) {
-      if (catError.status !== 404) {
-        setError(catError as ApiError || { message: "Error searching categories." });
-        setSearchMode('specific_search_error');
-        setIsLoading(false);
-        return;
-      }
-      // If 404, proceed to image tag search
-    }
-
-    // 3. Search Images by Tag
-    try {
-      const imagesData = await searchImagesByTag(trimmedQuery);
-      if (imagesData.length > 0) {
-        setImageResults(imagesData);
-        setSearchMode('specific_search_images_found');
-      } else {
-        const knownTagExists = allKnownTags.some(tag => tag.name.toLowerCase() === trimmedQuery.toLowerCase());
-        if (knownTagExists) {
-          setSearchMode('specific_search_tag_link_only');
-        } else {
-          setSearchMode('specific_search_no_results'); // Error state remains null
+      if (catError.status === 404) {
+        try {
+          const imagesData = await searchImagesByTag(trimmedQuery);
+          if (imagesData.length > 0) { 
+            setImageResults(imagesData); 
+            setSearchMode('specific_search_images_found'); 
+            setError(null); // Explicitly clear error
+          } else {
+            const knownTagExists = allKnownTags.some(tag => tag.name.toLowerCase() === trimmedQuery.toLowerCase());
+            if (knownTagExists) {
+              setSearchMode('specific_search_tag_link_only');
+              setError(null); // Explicitly clear error as we are showing a link
+            } else {
+              setError({ message: `No category, images, or matching tag found for "${trimmedQuery}".` }); 
+              setSearchMode('specific_search_no_results');
+            }
+          }
+        } catch (imgError: any) { 
+          const knownTagExists = allKnownTags.some(tag => tag.name.toLowerCase() === trimmedQuery.toLowerCase());
+          if (knownTagExists) {
+            setSearchMode('specific_search_tag_link_only');
+            setError(null); // Explicitly clear error
+          } else {
+            setError(imgError as ApiError || { message: "Error searching images by tag."}); 
+            setSearchMode('specific_search_error');
+          }
         }
+      } else { 
+        setError(catError as ApiError || { message: "Error searching categories."}); 
+        setSearchMode('specific_search_error'); 
       }
-    } catch (imgError: any) {
-      const knownTagExists = allKnownTags.some(tag => tag.name.toLowerCase() === trimmedQuery.toLowerCase());
-      if (knownTagExists) {
-        setSearchMode('specific_search_tag_link_only');
-        // Optionally, set a non-critical error: setError({ message: `Could not fetch images for tag "${trimmedQuery}", but the tag exists.` });
-      } else {
-        setError(imgError as ApiError || { message: "Error searching images by tag." });
-        setSearchMode('specific_search_error');
-      }
+    } finally { 
+      setIsLoading(false); 
     }
-
-    setIsLoading(false);
   }, [allCategoriesFromContext, isLoadingCategoriesContext]);
 
 
@@ -210,25 +205,26 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
     const fetchAllTagsIfNeededAndSetBrowsingMode = async () => {
         if (allTagsFromApiRef.current.length === 0) { 
             setIsLoading(true); setError(null);
-            setCategoryResult(null); setImageResults([]); setTagsForBrowsing([]); setPrefixCategoryResults([]);
+            setCategoryResult(null); setImageResults([]); setTagsForBrowsing([]);
             setSearchMode('specific_search_loading'); 
             try {
                 const apiTags = await getAllTags();
                 allTagsFromApiRef.current = apiTags;
                 setTagsForBrowsing(apiTags.slice(0, 100));
                 setSearchMode(apiTags.length > 0 ? 'browsing_all_tags' : 'no_tags_to_browse');
+                setError(null); // Clear error on successful fetch
             } catch (err) {
                 setError(err as ApiError);
-                setSearchMode('specific_search_error'); // Use specific_search_error for API issues
+                setSearchMode('no_tags_to_browse'); 
             } finally {
                 setIsLoading(false);
             }
         } else {
-            setCategoryResult(null); setImageResults([]); setPrefixCategoryResults([]);
+            setCategoryResult(null); setImageResults([]);
             setTagsForBrowsing(allTagsFromApiRef.current.slice(0, 100));
             setSearchMode(allTagsFromApiRef.current.length > 0 ? 'browsing_all_tags' : 'no_tags_to_browse');
             setIsLoading(false); 
-            setError(null); 
+            setError(null); // Clear error when using cached tags
         }
         setIsDropdownOpen(true);
     };
@@ -245,7 +241,7 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
         }
     } else {
         setQuery(''); setDebouncedQuery('');
-        setCategoryResult(null); setImageResults([]); setTagsForBrowsing([]); setPrefixCategoryResults([]);
+        setCategoryResult(null); setImageResults([]); setTagsForBrowsing([]);
         setError(null); setIsLoading(false); setIsDropdownOpen(false);
         setSearchMode('initial_or_empty');
     }
@@ -263,7 +259,7 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
   const cleanupAfterSelection = () => {
     setQuery(''); 
     setDebouncedQuery(''); 
-    setCategoryResult(null); setImageResults([]); setTagsForBrowsing([]); setPrefixCategoryResults([]); setError(null); 
+    setCategoryResult(null); setImageResults([]); setTagsForBrowsing([]); setError(null); 
     setIsDropdownOpen(false); 
     setSearchMode('initial_or_empty');
     if (inputRef.current) inputRef.current.blur(); 
@@ -281,7 +277,7 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
         if (!query.trim()) { 
            setDebouncedQuery(''); 
         } else {
-           if (isLoading || error || categoryResult || imageResults.length > 0 || prefixCategoryResults.length > 0) {
+           if (isLoading || error || categoryResult || imageResults.length > 0) {
              setIsDropdownOpen(true);
            }
         }
@@ -309,7 +305,7 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
         width: inputRect.width,
       });
     }
-  }, [isVisibleInPortal, isDropdownOpen, query, categoryResult, imageResults, prefixCategoryResults, tagsForBrowsing, actualInputContainerRef]); 
+  }, [isVisibleInPortal, isDropdownOpen, query, categoryResult, imageResults, tagsForBrowsing, actualInputContainerRef]); 
 
   const searchInterface = (
     <>
@@ -391,25 +387,10 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
               <LoadingSpinner size="sm" /><span className={`ml-2 text-xs ${theme.card.secondaryText}`}>Loading...</span>
             </div>
           )}
-          {searchMode === 'specific_search_error' && error && !isLoading && (
+          {searchMode !== 'specific_search_loading' && error && searchMode !== 'specific_search_tag_link_only' && ( 
             <div className="p-2 text-xs sm:text-sm"><ErrorDisplay error={error} /></div>
           )}
 
-          {searchMode === 'specific_search_prefix_categories_found' && prefixCategoryResults.length > 0 && (
-            <>
-              <div className={`px-3 pt-2.5 pb-1.5 text-xs font-semibold ${theme.card.secondaryText}`}>Matching Categories:</div>
-              {prefixCategoryResults.map(cat => (
-                <button 
-                  key={cat.id} 
-                  onClick={() => handleCategoryResultClick(cat)} 
-                  className={`flex items-center w-full text-left px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm ${theme.dropdown.itemText} ${theme.dropdown.itemHoverBg} ${theme.dropdown.itemHoverText} transition-colors duration-150`}
-                >
-                  <RectangleStackIcon className={`w-4 h-4 mr-2 flex-shrink-0 ${theme.brandColor}`} />
-                  <span className="truncate">{cat.name}</span>
-                </button>
-              ))}
-            </>
-          )}
           {searchMode === 'specific_search_category_found' && categoryResult && (
             <button onClick={() => handleCategoryResultClick(categoryResult)} className={`flex items-center w-full text-left px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm ${theme.dropdown.itemText} ${theme.dropdown.itemHoverBg} ${theme.dropdown.itemHoverText} transition-colors duration-150`}>
               <RectangleStackIcon className={`w-4 h-4 mr-2 flex-shrink-0 ${theme.brandColor}`} />
@@ -461,14 +442,14 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
             </>
           )}
           
-          {searchMode === 'specific_search_no_results' && !isLoading && (
+          {searchMode === 'specific_search_no_results' && !isLoading && !error && ( 
             <div className={`px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm ${theme.card.secondaryText}`}>No results for "{debouncedQuery}".</div>
           )}
-          {searchMode === 'no_tags_to_browse' && !isLoading && allTagsFromApiRef.current.length === 0 && !error && (
+          {searchMode === 'no_tags_to_browse' && !isLoading && !error && (
             <div className={`px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm ${theme.card.secondaryText}`}>No tags available to browse.</div>
           )}
           
-           {searchMode === 'initial_or_empty' && !isLoading && !query.trim() && !error && (
+           {searchMode === 'initial_or_empty' && !isLoading && !query.trim() && ( 
              <div className={`px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm ${theme.card.secondaryText}`}>Start typing to search or browse tags.</div>
            )}
         </div>
