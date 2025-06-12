@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -196,10 +195,9 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
                 return;
             } else {
                 // TOTAL MISS: No category, no images by tag, tag doesn't exist.
-                // Do not change categoryResult, imageResults, searchMode, or error.
-                // This preserves previous results if any.
+                // 不做任何内容清空或错误提示，保持原有内容
                 setIsLoading(false);
-                // isDropdownOpen is managed by useEffect. If it was open with previous content, it remains open.
+                // 不设置 error、searchMode、categoryResult、imageResults
                 return;
             }
         }
@@ -418,12 +416,12 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
             </div>
           )}
           {/* Display API error if it exists and not loading. Preserved results might be shown alongside error if previous search was successful and current failed with error.*/}
-          {error && searchMode === 'specific_search_error' && !isLoading && ( 
+          {error && searchMode === 'specific_search_error' && !isLoading && (
             <div className="p-2 text-xs sm:text-sm"><ErrorDisplay error={error} /></div>
           )}
 
           {/* Display results based on searchMode, error state, and isLoading */}
-          {!isLoading && !error && (
+          {!isLoading && (!error || searchMode !== 'specific_search_error') && (
             <>
               {searchMode === 'specific_search_category_found' && categoryResult && (
                 <button onClick={() => handleCategoryResultClick(categoryResult)} className={`flex items-center w-full text-left px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm ${theme.dropdown.itemText} ${theme.dropdown.itemHoverBg} ${theme.dropdown.itemHoverText} transition-colors duration-150`}>
@@ -458,7 +456,6 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
                   )}
                 </>
               )}
-              
               {searchMode === 'browsing_all_tags' && tagsForBrowsing.length > 0 && (
                 <>
                     <div className={`px-3 pt-2.5 pb-1.5 text-xs font-semibold ${theme.card.secondaryText.replace('text-slate-600', 'text-slate-500').replace('dark:text-slate-300', 'dark:text-slate-400')}`}>
