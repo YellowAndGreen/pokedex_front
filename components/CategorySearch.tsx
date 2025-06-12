@@ -97,6 +97,8 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
 
   const { categories: allCategoriesFromContext, isLoading: isLoadingCategoriesContext } = useCategories();
 
+  const [prefixMatchedCategories, setPrefixMatchedCategories] = useState<CategoryRead[]>([]);
+
   useEffect(() => {
     let visibilityTimer: ReturnType<typeof setTimeout>;
     let unmountTimer: ReturnType<typeof setTimeout>;
@@ -251,14 +253,36 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
     };
 
     if (isVisibleInPortal) {
-        if (debouncedQuery.trim()) {
+        const trimmedQuery = debouncedQuery.trim();
+        if (trimmedQuery) {
+            // 前缀匹配逻辑
+            if (!isLoadingCategoriesContext && allCategoriesFromContext && allCategoriesFromContext.length > 0) {
+                const prefixMatches = allCategoriesFromContext.filter(cat =>
+                    cat.name.toLowerCase().startsWith(trimmedQuery.toLowerCase())
+                );
+                if (prefixMatches.length > 0) {
+                    setPrefixMatchedCategories(prefixMatches);
+                    setCategoryResult(null);
+                    setImageResults([]);
+                    setTagsForBrowsing([]);
+                    setSearchMode('specific_search_category_found');
+                    setIsDropdownOpen(true);
+                    setIsLoading(false);
+                    setError(null);
+                    return;
+                }
+            }
+            // 若无前缀匹配，清空 prefixMatchedCategories，走原有逻辑
+            setPrefixMatchedCategories([]);
             setTagsForBrowsing([]); // Clear tags when starting specific search
             setIsDropdownOpen(true); // Open dropdown for specific search results or to show preserved results
-            performSpecificSearch(debouncedQuery, allTagsFromApiRef.current);
+            performSpecificSearch(trimmedQuery, allTagsFromApiRef.current);
         } else if (!query.trim()) { // If both debounced and current query are empty (true empty state)
+            setPrefixMatchedCategories([]);
             setCategoryResult(null); setImageResults([]); // Clear specific search results for browse mode
             fetchAllTagsIfNeededAndSetBrowsingMode();
         } else { // Query has content (e.g. spaces), but debounced is empty (effectively empty for search)
+            setPrefixMatchedCategories([]);
             setIsDropdownOpen(false); // Close dropdown. Previous results (if any) are kept but hidden.
             setError(null); // Clear any errors if query is effectively empty.
             // Do not change searchMode here to preserve previous results, just hide them.
@@ -266,6 +290,7 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
             // setSearchMode('initial_or_empty'); setCategoryResult(null); setImageResults([]);
         }
     } else {
+        setPrefixMatchedCategories([]);
         setQuery(''); setDebouncedQuery('');
         setCategoryResult(null); setImageResults([]); setTagsForBrowsing([]);
         setError(null); setIsLoading(false); setIsDropdownOpen(false);
@@ -423,7 +448,28 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
           {/* Display results based on searchMode, error state, and isLoading */}
           {!isLoading && (!error || searchMode !== 'specific_search_error') && (
             <>
-              {searchMode === 'specific_search_category_found' && categoryResult && (
+              {/* 前缀匹配种类展示 */}
+              {searchMode === 'specific_search_category_found' && prefixMatchedCategories.length > 0 && (
+                <>
+                  <div className={`px-3 pt-2 pb-1 text-xs font-semibold ${theme.card.secondaryText.replace('text-slate-600', 'text-slate-500').replace('dark:text-slate-300', 'dark:text-slate-400')}`}>
+                    {`Found ${prefixMatchedCategories.length} categor${prefixMatchedCategories.length > 1 ? 'ies' : 'y'} matching "${debouncedQuery}"`}
+                  </div>
+                  {prefixMatchedCategories.slice(0, 15).map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => handleCategoryResultClick(cat)}
+                      className={`flex items-center w-full text-left px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm ${theme.dropdown.itemText} ${theme.dropdown.itemHoverBg} ${theme.dropdown.itemHoverText} transition-colors duration-150`}
+                    >
+                      <RectangleStackIcon className={`w-4 h-4 mr-2 flex-shrink-0 ${theme.brandColor}`} />
+                      <span className="truncate">{cat.name}</span>
+                    </button>
+                  ))}
+                  {prefixMatchedCategories.length > 15 && (
+                    <div className={`px-3 py-2 text-xs ${theme.card.secondaryText}`}>仅显示前 15 项，建议输入更完整名称以缩小范围。</div>
+                  )}
+                </>
+              )}
+              {searchMode === 'specific_search_category_found' && categoryResult && prefixMatchedCategories.length === 0 && (
                 <button onClick={() => handleCategoryResultClick(categoryResult)} className={`flex items-center w-full text-left px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm ${theme.dropdown.itemText} ${theme.dropdown.itemHoverBg} ${theme.dropdown.itemHoverText} transition-colors duration-150`}>
                   <RectangleStackIcon className={`w-4 h-4 mr-2 flex-shrink-0 ${theme.brandColor}`} />
                   <span className="truncate">{categoryResult.name}</span>
