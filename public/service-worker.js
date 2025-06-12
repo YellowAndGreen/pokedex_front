@@ -8,7 +8,6 @@ if (workbox) {
   workbox.core.setCacheNameDetails({ prefix: 'pokedex-im' });
 
   // Precache and route the app shell and critical static assets
-  // This list should match your PRECACHE_RESOURCES
   const APP_SHELL_RESOURCES = [
     { url: '/', revision: null }, // index.html
     { url: '/index.html', revision: null },
@@ -22,132 +21,133 @@ if (workbox) {
     { url: '/data/region_bird_stats.json', revision: null },
     { url: '/data/social_stats.json', revision: null },
     { url: '/data/top_birds.json', revision: null },
-    // Add other critical static assets if any
-    // Note: Hashed JS/CSS bundles are handled by runtime caching below
   ];
 
   workbox.precaching.precacheAndRoute(APP_SHELL_RESOURCES, {
-    ignoreURLParametersMatching: [/.*/], // Ignore all URL parameters for precached assets
+    ignoreURLParametersMatching: [/.*/],
   });
   workbox.precaching.cleanupOutdatedCaches();
 
-  // Cache Google Fonts
+  // 协议过滤函数 - 核心修复点
+  const isHTTP = ({ url }) => 
+    url.protocol === 'http:' || url.protocol === 'https:';
+
+  // 缓存谷歌字体
   workbox.routing.registerRoute(
-    ({ url }) => url.origin === 'https://fonts.googleapis.com',
+    ({ url }) => isHTTP({ url }) && url.origin === 'https://fonts.googleapis.com',
     new workbox.strategies.StaleWhileRevalidate({
       cacheName: 'google-fonts-stylesheets',
     })
   );
 
   workbox.routing.registerRoute(
-    ({ url }) => url.origin === 'https://fonts.gstatic.com',
+    ({ url }) => isHTTP({ url }) && url.origin === 'https://fonts.gstatic.com',
     new workbox.strategies.CacheFirst({
       cacheName: 'google-fonts-webfonts',
       plugins: [
-        new workbox.cacheable_response.CacheableResponsePlugin({
+        new workbox.cacheableResponse.CacheableResponsePlugin({  // 修复大小写
           statuses: [0, 200],
         }),
         new workbox.expiration.ExpirationPlugin({
-          maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+          maxAgeSeconds: 60 * 60 * 24 * 365,
           maxEntries: 30,
         }),
       ],
     })
   );
 
-  // Cache ECharts CDN script
+  // 缓存 ECharts CDN 脚本
   workbox.routing.registerRoute(
-    ({ url }) => url.origin === 'https://cdn.jsdelivr.net' && url.pathname.startsWith('/npm/echarts@'),
+    ({ url }) => isHTTP({ url }) && 
+               url.origin === 'https://cdn.jsdelivr.net' && 
+               url.pathname.startsWith('/npm/echarts@'),
     new workbox.strategies.StaleWhileRevalidate({
       cacheName: 'cdn-scripts',
     })
   );
 
-  // Cache app's own JS and CSS files (StaleWhileRevalidate for updates)
-  // Only cache scripts/styles from http or https protocols.
+  // 缓存本地 JS/CSS
   workbox.routing.registerRoute(
-    ({ request, url }) => {
-      if ((request.destination === 'script' || request.destination === 'style')) {
-        return url.protocol === 'http:' || url.protocol === 'https:';
-      }
-      return false;
-    },
+    ({ request, url }) => isHTTP({ url }) && 
+                         (request.destination === 'script' || request.destination === 'style'),
     new workbox.strategies.StaleWhileRevalidate({
       cacheName: 'static-resources',
       plugins: [
         new workbox.expiration.ExpirationPlugin({
-          maxEntries: 50, // Cache up to 50 scripts/styles
-          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+          maxEntries: 50,
+          maxAgeSeconds: 30 * 24 * 60 * 60,
         }),
       ],
     })
   );
 
-  const API_BASE_URL_CONFIG = 'http://39.107.88.124:8000'; // Match app's constant, use a different name to avoid conflict if this script is module-scoped later
+  const API_BASE_URL_CONFIG = 'http://39.107.88.124:8000';
 
-  // Cache images from the API/Image base URL (CacheFirst)
+  // 缓存API图片 - 增加协议校验
   workbox.routing.registerRoute(
-    ({ url, request }) => url.origin === new URL(API_BASE_URL_CONFIG).origin && request.destination === 'image',
+    ({ url, request }) => isHTTP({ url }) && 
+                         url.origin === new URL(API_BASE_URL_CONFIG).origin && 
+                         request.destination === 'image',
     new workbox.strategies.CacheFirst({
       cacheName: 'api-images',
       plugins: [
-        new workbox.cacheable_response.CacheableResponsePlugin({
-          statuses: [0, 200], // Cache opaque responses and successful responses
+        new workbox.cacheableResponse.CacheableResponsePlugin({  // 修复大小写
+          statuses: [0, 200],
         }),
         new workbox.expiration.ExpirationPlugin({
-          maxEntries: 100, // Store up to 100 images
-          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
-          purgeOnQuotaError: true, // Automatically cleanup if quota is exceeded
+          maxEntries: 100,
+          maxAgeSeconds: 30 * 24 * 60 * 60,
+          purgeOnQuotaError: true,
         }),
       ],
     })
   );
 
-  // Cache API GET requests (StaleWhileRevalidate)
+  // 缓存 API GET 请求
   workbox.routing.registerRoute(
-    ({ url, request }) => url.origin === new URL(API_BASE_URL_CONFIG).origin && request.method === 'GET',
+    ({ url, request }) => isHTTP({ url }) && 
+                         url.origin === new URL(API_BASE_URL_CONFIG).origin && 
+                         request.method === 'GET',
     new workbox.strategies.StaleWhileRevalidate({
       cacheName: 'api-data',
       plugins: [
-        new workbox.cacheable_response.CacheableResponsePlugin({
-          statuses: [200], // Only cache successful API responses
+        new workbox.cacheableResponse.CacheableResponsePlugin({  // 修复大小写
+          statuses: [200],
         }),
         new workbox.expiration.ExpirationPlugin({
           maxEntries: 50,
-          maxAgeSeconds: 1 * 24 * 60 * 60, // 1 Day
+          maxAgeSeconds: 1 * 24 * 60 * 60,
         }),
       ],
     })
   );
 
-  // For non-GET API requests, use NetworkOnly
+  // 非 GET API 请求
   workbox.routing.registerRoute(
-    ({ url, request }) => url.origin === new URL(API_BASE_URL_CONFIG).origin && request.method !== 'GET',
+    ({ url, request }) => isHTTP({ url }) && 
+                         url.origin === new URL(API_BASE_URL_CONFIG).origin && 
+                         request.method !== 'GET',
     new workbox.strategies.NetworkOnly()
   );
 
-  // Navigation Fallback: Serve offline.html for navigation requests that fail
-  const offlinePage = '/offline.html'; // Ensure this is precached
+  // 离线回退页面
+  const offlinePage = '/offline.html';
   const navigationHandler = new workbox.strategies.NetworkOnly();
 
   workbox.routing.registerRoute(
     new workbox.routing.NavigationRoute(
       async (params) => {
         try {
-          // Attempt to fulfill the request from the network.
           return await navigationHandler.handle(params);
         } catch (error) {
-          // The network failed; fall back to the offline page.
-          console.log('[Service Worker] Navigation failed, serving offline page.');
           return caches.match(offlinePage, {
-            cacheName: workbox.core.cacheNames.precache // Ensure it comes from precache
+            cacheName: workbox.core.cacheNames.precache
           });
         }
       }
     )
   );
 
-  // Control the clients without waiting for them to close and reopen.
   self.skipWaiting();
   workbox.core.clientsClaim();
 
