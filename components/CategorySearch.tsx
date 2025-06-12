@@ -140,8 +140,9 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
       return;
     }
 
+    // Ensure error is cleared at the very beginning of a new specific search
+    setError(null); 
     setIsLoading(true); 
-    // setError(null); // Error is now cleared before calling this in useEffect
     setCategoryResult(null); 
     setImageResults([]); 
     setIsDropdownOpen(true);
@@ -152,7 +153,7 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
       if (foundInContext) {
         setCategoryResult(foundInContext as CategoryRead); 
         setSearchMode('specific_search_category_found'); 
-        setError(null);
+        setError(null); // Explicitly set error to null on success
         setIsLoading(false); 
         return;
       }
@@ -162,7 +163,7 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
       const categoryData = await getCategoryByName(trimmedQuery);
       setCategoryResult(categoryData); 
       setSearchMode('specific_search_category_found');
-      setError(null); 
+      setError(null); // Explicitly set error to null on success
     } catch (catError: any) {
       if (catError.status === 404) {
         try {
@@ -170,12 +171,12 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
           if (imagesData.length > 0) { 
             setImageResults(imagesData); 
             setSearchMode('specific_search_images_found'); 
-            setError(null); 
+            setError(null); // Explicitly set error to null on success
           } else {
             const knownTagExists = allKnownTags.some(tag => tag.name.toLowerCase() === trimmedQuery.toLowerCase());
             if (knownTagExists) {
               setSearchMode('specific_search_tag_link_only');
-              setError(null); 
+              setError(null); // Explicitly set error to null as we have a link
             } else {
               setError({ message: `No category, images, or matching tag found for "${trimmedQuery}".` }); 
               setSearchMode('specific_search_no_results');
@@ -185,7 +186,7 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
           const knownTagExists = allKnownTags.some(tag => tag.name.toLowerCase() === trimmedQuery.toLowerCase());
           if (knownTagExists) {
             setSearchMode('specific_search_tag_link_only');
-            setError(null); 
+            setError(null); // Explicitly set error to null as we have a link
           } else {
             setError(imgError as ApiError || { message: "Error searching images by tag."}); 
             setSearchMode('specific_search_error');
@@ -231,15 +232,12 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
 
     if (isVisibleInPortal) {
         if (debouncedQuery.trim()) {
-            setError(null); // Explicitly clear error before a new specific search
+            // setError(null); // Removed: setError(null) is now at the start of performSpecificSearch
             setTagsForBrowsing([]); 
             performSpecificSearch(debouncedQuery, allTagsFromApiRef.current);
         } else if (!query.trim()) { 
-            // Error is cleared within fetchAllTagsIfNeededAndSetBrowsingMode on success/cache use
             fetchAllTagsIfNeededAndSetBrowsingMode();
-        } else {
-            // This case handles when query might have content (e.g. whitespace) but debouncedQuery is empty,
-            // or user cleared input rapidly. We are not searching, so clear any errors.
+        } else { 
             setSearchMode('initial_or_empty');
             setIsDropdownOpen(false);
             setError(null); 
