@@ -487,14 +487,13 @@ const CategorySearch: React.FC<CategorySearchProps> = ({ isExpanded, onFocus, on
   if (!isMountedInPortal) {
     return ( 
       <div ref={componentRootRef} className="flex-grow max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl h-full">
-        <button 
-            onClick={onFocus} 
-            className={`flex items-center justify-start w-full h-full px-3 sm:px-4 ${theme.input.bg} ${theme.input.border} ${theme.card.rounded} ${theme.card.shadow} ${theme.input.text} hover:opacity-80 transition-opacity duration-200`}
-            aria-label="Open search"
-        >
-            <SearchIcon className={`h-4 w-4 sm:h-5 sm:h-5 ${theme.input.placeholderText} mr-2 sm:mr-3`} />
-            <span className={`text-xs sm:text-sm ${theme.input.placeholderText}`}>Search...</span>
-        </button>
+      <button
+        onClick={onFocus}
+        className={`p-2 rounded-full focus:outline-none transition-colors duration-150 ease-in-out ${theme.iconButton} focus-visible:ring-2 ${theme.input.focusRing.replace('focus:ring-2 focus:', 'focus-visible:')}`}
+        aria-label="Open search bar"
+      >
+        <SearchIcon className="h-5 w-5" />
+      </button>
       </div>
     );
   }
