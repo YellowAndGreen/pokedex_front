@@ -1,7 +1,19 @@
 # netlify.toml
 
+# 规则一：代理 API 请求
 [[redirects]]
   from = "/api/*"
   to = "http://39.107.88.124:8000/api/:splat"
   status = 200
-  force = true
+
+# 规则二：代理 thumbnails 图片
+[[redirects]]
+  from = "/thumbnails/*"
+  to = "http://39.107.88.124:8000/thumbnails/:splat"
+  status = 200
+
+# 规则三：代理 uploaded_images 图片
+[[redirects]]
+  from = "/uploaded_images/*"
+  to = "http://39.107.88.124:8000/uploaded_images/:splat"
+  status = 200
