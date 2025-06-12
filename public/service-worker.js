@@ -1,119 +1,153 @@
 
-const CACHE_NAME = 'pokedex-image-manager-v1';
-const OFFLINE_URL = '/offline.html';
+// Import Workbox from Google CDN
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.0.0/workbox-sw.js');
 
-// IMPORTANT: This list should contain only essential static files for the app shell.
-// JavaScript and CSS bundles will be cached dynamically by the fetch handler.
-const PRECACHE_RESOURCES = [
-  '/', // Alias for index.html
-  '/index.html',
-  '/offline.html',
-  '/manifest.json',
-  // Critical icons
-  '/icons/icon-144x144.png',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  // Data files (if they are static and part of the app shell)
-  '/data/analytics_summary.json',
-  '/data/bird_sightings.json',
-  '/data/region_bird_stats.json',
-  '/data/social_stats.json',
-  '/data/top_birds.json'
-  // Note: Your main JavaScript bundle (e.g., index-KqiRWaZT.js) and CSS files
-  // are not listed here because their names can change with each build (hashed).
-  // They will be cached by the fetch handler below when first requested.
-];
+if (workbox) {
+  console.log(`Workbox loaded successfully!`);
 
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('[Service Worker] Pre-caching offline page and core assets.');
-        return cache.addAll(PRECACHE_RESOURCES);
-      })
-      .then(() => self.skipWaiting())
-      .catch(error => {
-        console.error('[Service Worker] Pre-caching failed:', error);
-        // If precaching fails, the service worker might not install correctly.
-        // This usually means one of the PRECACHE_RESOURCES was not found.
-      })
+  // Set a prefix for Workbox-generated cache names
+  workbox.core.setCacheNameDetails({ prefix: 'pokedex-im' });
+
+  // Precache and route the app shell and critical static assets
+  // This list should match your PRECACHE_RESOURCES
+  const APP_SHELL_RESOURCES = [
+    { url: '/', revision: null }, // index.html
+    { url: '/index.html', revision: null },
+    { url: '/offline.html', revision: null },
+    { url: '/manifest.json', revision: null },
+    { url: '/icons/icon-144x144.png', revision: null },
+    { url: '/icons/icon-192x192.png', revision: null },
+    { url: '/icons/icon-512x512.png', revision: null },
+    { url: '/data/analytics_summary.json', revision: null },
+    { url: '/data/bird_sightings.json', revision: null },
+    { url: '/data/region_bird_stats.json', revision: null },
+    { url: '/data/social_stats.json', revision: null },
+    { url: '/data/top_birds.json', revision: null },
+    // Add other critical static assets if any
+    // Note: Hashed JS/CSS bundles are handled by runtime caching below
+  ];
+
+  workbox.precaching.precacheAndRoute(APP_SHELL_RESOURCES, {
+    ignoreURLParametersMatching: [/.*/], // Ignore all URL parameters for precached assets
+  });
+  workbox.precaching.cleanupOutdatedCaches();
+
+  // Cache Google Fonts
+  workbox.routing.registerRoute(
+    ({ url }) => url.origin === 'https://fonts.googleapis.com',
+    new workbox.strategies.StaleWhileRevalidate({
+      cacheName: 'google-fonts-stylesheets',
+    })
   );
-});
 
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.filter(name => name !== CACHE_NAME)
-          .map(name => {
-            console.log('[Service Worker] Deleting old cache:', name);
-            return caches.delete(name);
-          })
-      );
-    }).then(() => self.clients.claim())
+  workbox.routing.registerRoute(
+    ({ url }) => url.origin === 'https://fonts.gstatic.com',
+    new workbox.strategies.CacheFirst({
+      cacheName: 'google-fonts-webfonts',
+      plugins: [
+        new workbox.cacheable_response.CacheableResponsePlugin({
+          statuses: [0, 200],
+        }),
+        new workbox.expiration.ExpirationPlugin({
+          maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+          maxEntries: 30,
+        }),
+      ],
+    })
   );
-});
 
-self.addEventListener('fetch', event => {
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .catch(() => {
-          return caches.match(OFFLINE_URL).then(cachedResponse => {
-            return cachedResponse || new Response("Offline page not found in cache.", { status: 404, headers: { 'Content-Type': 'text/plain' }});
-          });
-        })
-    );
-  } else if (event.request.destination === 'script' || event.request.destination === 'style') {
-    // Cache-first, then network. Cache the network response if successful.
-    event.respondWith(
-      caches.open(CACHE_NAME).then(cache => {
-        return cache.match(event.request).then(cachedResponse => {
-          return cachedResponse || fetch(event.request).then(networkResponse => {
-            // Check if the response is valid before caching
-            if (networkResponse.ok) {
-              cache.put(event.request, networkResponse.clone());
-            }
-            return networkResponse;
-          }).catch(error => {
-            console.warn(`[Service Worker] Network request failed for ${event.request.destination}: ${event.request.url}`, error);
-            // Optionally, return a specific offline response for scripts/styles if needed
-            // For now, let the browser handle the error for failed script/style loads
-          });
-        });
-      })
-    );
-  } else {
-    // For other requests (images, fonts, API calls, etc.), use cache-first then network.
-    event.respondWith(
-      caches.match(event.request)
-        .then(cachedResponse => {
-          return cachedResponse || fetch(event.request).then(networkResponse => {
-            // Optionally, cache other successful GET requests if needed
-            // Example: Caching images if they are successfully fetched
-            if (networkResponse.ok && event.request.method === 'GET' && event.request.destination === 'image') {
-               const responseToCache = networkResponse.clone();
-               caches.open(CACHE_NAME).then(cache => {
-                 cache.put(event.request, responseToCache);
-               });
-            }
-            return networkResponse;
-          }).catch(error => {
-            console.warn(`[Service Worker] Network request failed for ${event.request.destination}: ${event.request.url}`, error);
-             // If an image fails and is not in cache, you could provide a fallback placeholder
-            // if (event.request.destination === 'image') {
-            //   return caches.match('/icons/offline-placeholder.png'); // Ensure this placeholder is in PRECACHE_RESOURCES
-            // }
-            // For other failed requests, let the browser handle it.
-          });
-        })
-    );
-  }
-});
+  // Cache ECharts CDN script
+  workbox.routing.registerRoute(
+    ({ url }) => url.origin === 'https://cdn.jsdelivr.net' && url.pathname.startsWith('/npm/echarts@'),
+    new workbox.strategies.StaleWhileRevalidate({
+      cacheName: 'cdn-scripts',
+    })
+  );
 
-// Optional: Listen for messages from clients (e.g., to trigger skipWaiting from app)
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
+  // Cache app's own JS and CSS files (StaleWhileRevalidate for updates)
+  workbox.routing.registerRoute(
+    ({ request }) => request.destination === 'script' || request.destination === 'style',
+    new workbox.strategies.StaleWhileRevalidate({
+      cacheName: 'static-resources',
+      plugins: [
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 50, // Cache up to 50 scripts/styles
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+        }),
+      ],
+    })
+  );
+
+  const API_BASE_URL = 'http://39.107.88.124:8000'; // This must match your app's constant
+
+  // Cache images from the API/Image base URL (CacheFirst)
+  workbox.routing.registerRoute(
+    ({ url, request }) => url.origin === new URL(API_BASE_URL).origin && request.destination === 'image',
+    new workbox.strategies.CacheFirst({
+      cacheName: 'api-images',
+      plugins: [
+        new workbox.cacheable_response.CacheableResponsePlugin({
+          statuses: [0, 200], // Cache opaque responses and successful responses
+        }),
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 100, // Store up to 100 images
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+          purgeOnQuotaError: true, // Automatically cleanup if quota is exceeded
+        }),
+      ],
+    })
+  );
+
+  // Cache API GET requests (StaleWhileRevalidate)
+  workbox.routing.registerRoute(
+    ({ url, request }) => url.origin === new URL(API_BASE_URL).origin && request.method === 'GET',
+    new workbox.strategies.StaleWhileRevalidate({
+      cacheName: 'api-data',
+      plugins: [
+        new workbox.cacheable_response.CacheableResponsePlugin({
+          statuses: [200], // Only cache successful API responses
+        }),
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 50,
+          maxAgeSeconds: 1 * 24 * 60 * 60, // 1 Day
+        }),
+      ],
+    })
+  );
+
+  // For non-GET API requests, use NetworkOnly
+  workbox.routing.registerRoute(
+    ({ url, request }) => url.origin === new URL(API_BASE_URL).origin && request.method !== 'GET',
+    new workbox.strategies.NetworkOnly()
+  );
+
+  // Navigation Fallback: Serve offline.html for navigation requests that fail
+  const offlinePage = '/offline.html'; // Ensure this is precached
+  const navigationHandler = new workbox.strategies.NetworkOnly();
+
+  workbox.routing.registerRoute(
+    new workbox.routing.NavigationRoute(
+      async (params) => {
+        try {
+          // Attempt to fulfill the request from the network.
+          return await navigationHandler.handle(params);
+        } catch (error) {
+          // The network failed; fall back to the offline page.
+          console.log('[Service Worker] Navigation failed, serving offline page.');
+          return caches.match(offlinePage, {
+            cacheName: workbox.core.cacheNames.precache // Ensure it comes from precache
+          });
+        }
+      }
+    )
+  );
+
+  // Control the clients without waiting for them to close and reopen.
+  self.skipWaiting();
+  workbox.core.clientsClaim();
+
+  console.log(`Workbox configured successfully.`);
+
+} else {
+  console.error(`Workbox failed to load.`);
+}
