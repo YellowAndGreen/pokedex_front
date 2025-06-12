@@ -9,6 +9,7 @@ import LoadingSpinner from './LoadingSpinner';
 import ErrorDisplay from './ErrorDisplay';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCategories } from '../contexts/CategoryContext';
+import { IMAGE_BASE_URL } from '../constants'; // Added IMAGE_BASE_URL import
 
 interface CategorySearchProps {
   isExpanded: boolean;
@@ -29,6 +30,13 @@ type SearchMode =
 
 const ANIMATION_DURATION = 300; 
 
+const getRelativeUrl = (absoluteUrl: string | null | undefined): string | null | undefined => {
+  if (absoluteUrl && absoluteUrl.startsWith(IMAGE_BASE_URL)) {
+    return absoluteUrl.substring(IMAGE_BASE_URL.length);
+  }
+  return absoluteUrl;
+};
+
 interface ImageResultItemProps {
   image: ImageRead;
   onClick: () => void;
@@ -37,7 +45,7 @@ interface ImageResultItemProps {
 const ImageResultItem: React.FC<ImageResultItemProps> = ({ image, onClick }) => {
   const { theme } = useTheme();
   const [loadError, setLoadError] = useState(false);
-  const src = image.thumbnail_url;
+  const src = getRelativeUrl(image.thumbnail_url); // Transform URL
 
   useEffect(() => {
     setLoadError(false);
