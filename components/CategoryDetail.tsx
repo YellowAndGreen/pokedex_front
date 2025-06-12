@@ -15,6 +15,14 @@ import { EditIcon, TrashIcon, UploadIcon, ImagePlaceholderIcon } from './icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext'; // Import useAuth
 import ImageCardSkeleton from './ImageCardSkeleton';
+import { API_BASE_URL } from '../constants';
+
+const getRelativeUrl = (absoluteUrl: string | null | undefined): string | null | undefined => {
+  if (absoluteUrl && absoluteUrl.startsWith(API_BASE_URL)) {
+    return absoluteUrl.substring(API_BASE_URL.length);
+  }
+  return absoluteUrl;
+};
 
 const CategoryDetail: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
@@ -202,13 +210,18 @@ const CategoryDetail: React.FC = () => {
     }
     const { thumbnail_url, thumbnail_path, images } = category;
     if (!thumbnail_url && !thumbnail_path) return null;
-    // Removed check for DEFAULT_CATEGORY_THUMBNAIL
+
+    const relativeThumbnailUrl = getRelativeUrl(thumbnail_url);
 
     for (let i = 0; i < images.length; i++) {
       const img = images[i];
-      if (thumbnail_url && (img.image_url === thumbnail_url || img.thumbnail_url === thumbnail_url)) {
+      const relativeImgUrl = getRelativeUrl(img.image_url);
+      const relativeImgThumbnailUrl = getRelativeUrl(img.thumbnail_url);
+
+      if (relativeThumbnailUrl && (relativeImgUrl === relativeThumbnailUrl || relativeImgThumbnailUrl === relativeThumbnailUrl)) {
         return { image: img, index: i };
       }
+      // Check path based comparison if URL match fails or thumbnail_url is not set
       if (thumbnail_path && (
             (img.relative_file_path && img.relative_file_path === thumbnail_path) ||
             (img.relative_thumbnail_path && img.relative_thumbnail_path === thumbnail_path)
@@ -228,11 +241,11 @@ const CategoryDetail: React.FC = () => {
   if (error && !category) return <ErrorDisplay error={error} onRetry={() => fetchCategoryDetails()} />;
   if (!category && !isLoading) return <p className={`text-center ${theme.card.secondaryText} py-10`}>Category not found.</p>;
 
-  const categoryThumbnailToDisplay = category?.thumbnail_url; // Use direct URL or undefined
+  const categoryThumbnailToDisplay = getRelativeUrl(category?.thumbnail_url);
 
   const isSelectedImageCategoryThumbnail = !!(
     category && selectedImage && (
-      (category.thumbnail_url && (category.thumbnail_url === selectedImage.image_url || category.thumbnail_url === selectedImage.thumbnail_url)) ||
+      (getRelativeUrl(category.thumbnail_url) && (getRelativeUrl(category.thumbnail_url) === getRelativeUrl(selectedImage.image_url) || getRelativeUrl(category.thumbnail_url) === getRelativeUrl(selectedImage.thumbnail_url))) ||
       (category.thumbnail_path && (
           (selectedImage.relative_file_path && category.thumbnail_path === selectedImage.relative_file_path) ||
           (selectedImage.relative_thumbnail_path && category.thumbnail_path === selectedImage.relative_thumbnail_path)
