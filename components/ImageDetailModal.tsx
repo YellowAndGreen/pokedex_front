@@ -10,6 +10,7 @@ import AlertDialog from './AlertDialog';
 import { TrashIcon, EditIcon, StarIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon, ArrowsPointingOutIcon, ImagePlaceholderIcon } from './icons'; // Added ImagePlaceholderIcon
 import { useTheme } from '../contexts/ThemeContext';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
+import { API_BASE_URL } from '../constants';
 
 interface ImageDetailModalProps {
   image: ImageRead | null;
@@ -31,6 +32,13 @@ type ToastState = {
   message: string;
   type: 'success' | 'error';
 } | null;
+
+const getRelativeUrl = (absoluteUrl: string | null | undefined): string | null | undefined => {
+  if (absoluteUrl && absoluteUrl.startsWith(API_BASE_URL)) {
+    return absoluteUrl.substring(API_BASE_URL.length);
+  }
+  return absoluteUrl;
+};
 
 const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
   image,
@@ -59,7 +67,7 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [toastState, setToastState] = useState<ToastState>(null);
 
-  const [currentDisplaySrc, setCurrentDisplaySrc] = useState<string | null>(null); // Manages current src, null if placeholder
+  const [currentDisplaySrc, setCurrentDisplaySrc] = useState<string | null>(null); 
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [isFullImageLoading, setIsFullImageLoading] = useState(false);
   const [imageKey, setImageKey] = useState(0); 
@@ -113,18 +121,21 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
       setIsImageMaximized(false);
       setImageScale(1);
       setImagePosition({ x: 0, y: 0 });
-      setImageLoadFailed(false); // Reset load failure state
-      setImageKey(prev => prev + 1); // Force re-render of image component
+      setImageLoadFailed(false); 
+      setImageKey(prev => prev + 1); 
 
-      const preferredSrc = image.thumbnail_url || image.image_url;
-      setCurrentDisplaySrc(preferredSrc || null);
+      const transformedThumbnailUrl = getRelativeUrl(image.thumbnail_url);
+      const transformedImageUrl = getRelativeUrl(image.image_url);
+      
+      const preferredSrcForModal = transformedThumbnailUrl || transformedImageUrl;
+      setCurrentDisplaySrc(preferredSrcForModal || null);
 
-      if (image.image_url && image.image_url !== preferredSrc) {
+      if (transformedImageUrl && transformedImageUrl !== preferredSrcForModal) {
         setIsFullImageLoading(true);
         const fullResImage = new window.Image();
         fullResImage.onload = () => {
-          if (isOpen && image && image.id === image.id) { // Check if modal is still open for this image
-            setCurrentDisplaySrc(image.image_url!);
+          if (isOpen && image && image.id === image.id) { 
+            setCurrentDisplaySrc(transformedImageUrl!);
             setImageLoadFailed(false);
             setImageKey(prev => prev + 1);
             setIsFullImageLoading(false);
@@ -132,16 +143,13 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
         };
         fullResImage.onerror = () => {
           if (isOpen && image && image.id === image.id) {
-             // Full res failed, if thumbnail also failed, or not present, then imageLoadFailed should be true.
-             // If thumbnail (preferredSrc) was valid, it remains as currentDisplaySrc.
-            if (!preferredSrc) setImageLoadFailed(true);
+            if (!preferredSrcForModal) setImageLoadFailed(true);
             setIsFullImageLoading(false);
           }
         };
-        fullResImage.src = image.image_url;
+        fullResImage.src = transformedImageUrl;
       } else {
-        // If image_url is the preferred (or only) source, and it's null, mark as failed if no thumbnail
-        if (!preferredSrc) setImageLoadFailed(true);
+        if (!preferredSrcForModal) setImageLoadFailed(true);
         setIsFullImageLoading(false);
       }
     } else if (!isOpen) {
@@ -379,8 +387,9 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
   const expandButtonBaseClass = `absolute top-2 right-2 z-20 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full transition-all duration-150 focus:outline-none ring-1 ring-transparent focus-visible:ring-2 ${theme.input.focusRing.replace('focus:ring-2', '').trim()} opacity-70 hover:opacity-100`;
 
   const renderImageOrPlaceholder = (maximized = false) => {
-    const srcToUse = maximized ? (image?.image_url || currentDisplaySrc) : currentDisplaySrc;
-    const isActuallyLoading = isFullImageLoading && (!maximized || (maximized && srcToUse === image?.image_url));
+    // currentDisplaySrc already holds the potentially relative URL
+    const srcToUse = maximized ? (getRelativeUrl(image?.image_url) || currentDisplaySrc) : currentDisplaySrc;
+    const isActuallyLoading = isFullImageLoading && (!maximized || (maximized && srcToUse === getRelativeUrl(image?.image_url)));
 
     if (srcToUse && !imageLoadFailed) {
       return (
