@@ -10,7 +10,7 @@ import AlertDialog from './AlertDialog';
 import { TrashIcon, EditIcon, StarIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon, ArrowsPointingOutIcon, ImagePlaceholderIcon } from './icons'; // Added ImagePlaceholderIcon
 import { useTheme } from '../contexts/ThemeContext';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
-import { API_BASE_URL } from '../constants';
+import { IMAGE_BASE_URL } from '../constants'; // Changed from API_BASE_URL to IMAGE_BASE_URL
 
 interface ImageDetailModalProps {
   image: ImageRead | null;
@@ -34,8 +34,8 @@ type ToastState = {
 } | null;
 
 const getRelativeUrl = (absoluteUrl: string | null | undefined): string | null | undefined => {
-  if (absoluteUrl && absoluteUrl.startsWith(API_BASE_URL)) {
-    return absoluteUrl.substring(API_BASE_URL.length);
+  if (absoluteUrl && absoluteUrl.startsWith(IMAGE_BASE_URL)) { // Changed from API_BASE_URL
+    return absoluteUrl.substring(IMAGE_BASE_URL.length); // Changed from API_BASE_URL
   }
   return absoluteUrl;
 };

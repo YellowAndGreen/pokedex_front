@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import type { ImageRead } from '../types';
 import { ImagePlaceholderIcon } from './icons';
 import { useTheme } from '../contexts/ThemeContext';
-import { API_BASE_URL } from '../constants';
+import { IMAGE_BASE_URL } from '../constants'; // Changed from API_BASE_URL to IMAGE_BASE_URL
 
 interface ImageCardProps {
   image: ImageRead;
@@ -12,8 +12,8 @@ interface ImageCardProps {
 }
 
 const getRelativeUrl = (absoluteUrl: string | null | undefined): string | null | undefined => {
-  if (absoluteUrl && absoluteUrl.startsWith(API_BASE_URL)) {
-    return absoluteUrl.substring(API_BASE_URL.length);
+  if (absoluteUrl && absoluteUrl.startsWith(IMAGE_BASE_URL)) { // Changed from API_BASE_URL
+    return absoluteUrl.substring(IMAGE_BASE_URL.length); // Changed from API_BASE_URL
   }
   return absoluteUrl;
 };
