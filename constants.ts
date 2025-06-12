@@ -1,5 +1,5 @@
 
-export const API_BASE_URL = '/api/'; // Replace with your actual API base URL
+export const API_BASE_URL = '/'; // Replace with your actual API base URL
 
 // DEFAULT_CATEGORY_THUMBNAIL and DEFAULT_IMAGE_THUMBNAIL have been removed.
 // The application will now use internal placeholders (SVG icons on skeleton backgrounds)
