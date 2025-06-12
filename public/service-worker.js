@@ -1,4 +1,3 @@
-
 // Import Workbox from Google CDN
 importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.0.0/workbox-sw.js');
 
@@ -65,8 +64,14 @@ if (workbox) {
   );
 
   // Cache app's own JS and CSS files (StaleWhileRevalidate for updates)
+  // Only cache scripts/styles from http or https protocols.
   workbox.routing.registerRoute(
-    ({ request }) => request.destination === 'script' || request.destination === 'style',
+    ({ request, url }) => {
+      if ((request.destination === 'script' || request.destination === 'style')) {
+        return url.protocol === 'http:' || url.protocol === 'https:';
+      }
+      return false;
+    },
     new workbox.strategies.StaleWhileRevalidate({
       cacheName: 'static-resources',
       plugins: [
@@ -78,11 +83,11 @@ if (workbox) {
     })
   );
 
-  const API_BASE_URL = 'http://39.107.88.124:8000'; // This must match your app's constant
+  const API_BASE_URL_CONFIG = 'http://39.107.88.124:8000'; // Match app's constant, use a different name to avoid conflict if this script is module-scoped later
 
   // Cache images from the API/Image base URL (CacheFirst)
   workbox.routing.registerRoute(
-    ({ url, request }) => url.origin === new URL(API_BASE_URL).origin && request.destination === 'image',
+    ({ url, request }) => url.origin === new URL(API_BASE_URL_CONFIG).origin && request.destination === 'image',
     new workbox.strategies.CacheFirst({
       cacheName: 'api-images',
       plugins: [
@@ -100,7 +105,7 @@ if (workbox) {
 
   // Cache API GET requests (StaleWhileRevalidate)
   workbox.routing.registerRoute(
-    ({ url, request }) => url.origin === new URL(API_BASE_URL).origin && request.method === 'GET',
+    ({ url, request }) => url.origin === new URL(API_BASE_URL_CONFIG).origin && request.method === 'GET',
     new workbox.strategies.StaleWhileRevalidate({
       cacheName: 'api-data',
       plugins: [
@@ -117,7 +122,7 @@ if (workbox) {
 
   // For non-GET API requests, use NetworkOnly
   workbox.routing.registerRoute(
-    ({ url, request }) => url.origin === new URL(API_BASE_URL).origin && request.method !== 'GET',
+    ({ url, request }) => url.origin === new URL(API_BASE_URL_CONFIG).origin && request.method !== 'GET',
     new workbox.strategies.NetworkOnly()
   );
 
