@@ -3,8 +3,12 @@ const path = require('path');
 const { autoUpdater } = require('electron-updater');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
-if (require('electron-squirrel-startup')) {
-  app.quit();
+try {
+  if (require('electron-squirrel-startup')) {
+    app.quit();
+  }
+} catch (e) {
+  // ignore if not found
 }
 
 let mainWindow;
@@ -29,7 +33,7 @@ const createWindow = () => {
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile('dist/index.html');
   }
 
   // Handle window closed event
@@ -95,4 +99,4 @@ ipcMain.handle('read-file', async (event, path) => {
 ipcMain.handle('write-file', async (event, path, content) => {
   const fs = require('fs').promises;
   return fs.writeFile(path, content, 'utf-8');
-});
+}); 
