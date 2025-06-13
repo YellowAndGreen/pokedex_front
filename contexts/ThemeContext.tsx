@@ -1,4 +1,4 @@
-
+/// <reference path="../electron.d.ts" />
 import React, { createContext, useState, useContext, useEffect, useMemo } from 'react';
 
 export type ThemeName = 'modern' | 'nature' | 'neonGalaxy' | 'arcadeFlash' | 'retroTechDark';
@@ -376,25 +376,56 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [themeName, setThemeNameState] = useState<ThemeName>(() => {
     if (typeof window !== 'undefined') {
-      const storedTheme = localStorage.getItem('appTheme') as ThemeName;
-      return Object.keys(themeSettings).includes(storedTheme) ? storedTheme : defaultThemeName;
+      // Check if we're in Electron environment
+      if (window.electronAPI) {
+        return window.electronAPI.readFile('user-preferences.json')
+          .then(data => {
+            const preferences = JSON.parse(data);
+            return preferences.themeName || defaultThemeName;
+          })
+          .catch(() => defaultThemeName);
+      } else {
+        const storedTheme = localStorage.getItem('appTheme') as ThemeName;
+        return Object.keys(themeSettings).includes(storedTheme) ? storedTheme : defaultThemeName;
+      }
     }
     return defaultThemeName;
   });
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
-      const storedTheme = localStorage.getItem('appTheme') as ThemeName;
-      if (storedTheme === 'retroTechDark') return true;
-      
-      return localStorage.getItem('darkMode') === 'true' ||
-             (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      // Check if we're in Electron environment
+      if (window.electronAPI) {
+        return window.electronAPI.readFile('user-preferences.json')
+          .then(data => {
+            const preferences = JSON.parse(data);
+            return preferences.isDarkMode || false;
+          })
+          .catch(() => false);
+      } else {
+        const storedTheme = localStorage.getItem('appTheme') as ThemeName;
+        if (storedTheme === 'retroTechDark') return true;
+        
+        return localStorage.getItem('darkMode') === 'true' ||
+               (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      }
     }
     return false;
   });
 
   useEffect(() => {
-    localStorage.setItem('appTheme', themeName);
+    // Save preferences to electron-store in Electron environment
+    if (window.electronAPI) {
+      const preferences = {
+        themeName,
+        isDarkMode
+      };
+      window.electronAPI.writeFile('user-preferences.json', JSON.stringify(preferences));
+    } else {
+      localStorage.setItem('appTheme', themeName);
+      localStorage.setItem('darkMode', isDarkMode.toString());
+    }
+
     document.body.className = 'antialiased'; 
     document.body.classList.add(...themeSettings[themeName].bodyBg.split(' '));
     
@@ -407,21 +438,26 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             document.documentElement.classList.remove('dark');
         }
     }
-
   }, [themeName, isDarkMode]);
 
   useEffect(() => {
     if (themeName === 'retroTechDark') {
       if (!isDarkMode) setIsDarkMode(true); 
       document.documentElement.classList.add('dark');
-      localStorage.setItem('darkMode', 'true'); 
+      if (!window.electronAPI) {
+        localStorage.setItem('darkMode', 'true');
+      }
     } else {
       if (isDarkMode) {
         document.documentElement.classList.add('dark');
-        localStorage.setItem('darkMode', 'true');
+        if (!window.electronAPI) {
+          localStorage.setItem('darkMode', 'true');
+        }
       } else {
         document.documentElement.classList.remove('dark');
-        localStorage.setItem('darkMode', 'false');
+        if (!window.electronAPI) {
+          localStorage.setItem('darkMode', 'false');
+        }
       }
     }
   }, [isDarkMode, themeName]);
