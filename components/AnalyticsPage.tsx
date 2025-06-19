@@ -6,7 +6,8 @@ import PieChart from './PieChart';
 import BirdSightingTimeline, { BirdSightingRecord } from './BirdSightingTimeline'; // Updated import
 import LoadingSpinner from './LoadingSpinner';
 import ErrorDisplay from './ErrorDisplay';
-import ChinaBirdMap, { RegionBirdData } from './ChinaBirdMap'; 
+import ChinaBirdMap, { RegionBirdData } from './ChinaBirdMap';
+import { resolveResourcePath } from '../utils/environment'; 
 
 interface StatDisplayItemProps {
   icon: React.ReactElement<{ className?: string }>;
@@ -158,7 +159,7 @@ const AnalyticsPage: React.FC = () => {
     setIsLoadingMapData(true);
     setMapDataError(null);
     try {
-        const response = await fetch('/data/region_bird_stats.json');
+        const response = await fetch(resolveResourcePath('/data/region_bird_stats.json'));
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -182,10 +183,10 @@ const AnalyticsPage: React.FC = () => {
 
 
   useEffect(() => {
-    fetchData<BirdSightingRecord[]>('/data/bird_sightings.json', setAllBirdSightings, setBirdDataError, setIsLoadingBirdData);
-    fetchData<AnalyticsSummary | null>('/data/analytics_summary.json', setSummaryStats, setSummaryError, setIsLoadingSummary);
-    fetchData<TopBirdData[]>('/data/top_birds.json', setTopBirdsData, setTopBirdsError, setIsLoadingTopBirds);
-    fetchData<SocialStats | null>('/data/social_stats.json', setSocialStats, setSocialStatsError, setIsLoadingSocialStats);
+    fetchData<BirdSightingRecord[]>(resolveResourcePath('/data/bird_sightings.json'), setAllBirdSightings, setBirdDataError, setIsLoadingBirdData);
+    fetchData<AnalyticsSummary | null>(resolveResourcePath('/data/analytics_summary.json'), setSummaryStats, setSummaryError, setIsLoadingSummary);
+    fetchData<TopBirdData[]>(resolveResourcePath('/data/top_birds.json'), setTopBirdsData, setTopBirdsError, setIsLoadingTopBirds);
+    fetchData<SocialStats | null>(resolveResourcePath('/data/social_stats.json'), setSocialStats, setSocialStatsError, setIsLoadingSocialStats);
     fetchAndProcessMapData();
   }, [fetchData, fetchAndProcessMapData]);
 

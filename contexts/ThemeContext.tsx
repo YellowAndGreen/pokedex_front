@@ -375,43 +375,45 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [themeName, setThemeNameState] = useState<ThemeName>(() => {
-    if (typeof window !== 'undefined') {
-      // Check if we're in Electron environment
-      if (window.electronAPI) {
-        return window.electronAPI.readFile('user-preferences.json')
-          .then(data => {
-            const preferences = JSON.parse(data);
-            return preferences.themeName || defaultThemeName;
-          })
-          .catch(() => defaultThemeName);
-      } else {
-        const storedTheme = localStorage.getItem('appTheme') as ThemeName;
-        return Object.keys(themeSettings).includes(storedTheme) ? storedTheme : defaultThemeName;
-      }
+    if (typeof window !== 'undefined' && !window.electronAPI) {
+      // 仅在Web环境下同步读取localStorage
+      const storedTheme = localStorage.getItem('appTheme') as ThemeName;
+      return Object.keys(themeSettings).includes(storedTheme) ? storedTheme : defaultThemeName;
     }
     return defaultThemeName;
   });
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      // Check if we're in Electron environment
-      if (window.electronAPI) {
-        return window.electronAPI.readFile('user-preferences.json')
-          .then(data => {
-            const preferences = JSON.parse(data);
-            return preferences.isDarkMode || false;
-          })
-          .catch(() => false);
-      } else {
-        const storedTheme = localStorage.getItem('appTheme') as ThemeName;
-        if (storedTheme === 'retroTechDark') return true;
-        
-        return localStorage.getItem('darkMode') === 'true' ||
-               (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      }
+    if (typeof window !== 'undefined' && !window.electronAPI) {
+      // 仅在Web环境下同步读取localStorage
+      const storedTheme = localStorage.getItem('appTheme') as ThemeName;
+      if (storedTheme === 'retroTechDark') return true;
+      
+      return localStorage.getItem('darkMode') === 'true' ||
+             (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
     }
     return false;
   });
+
+  // 异步加载Electron用户偏好
+  useEffect(() => {
+    if (window.electronAPI) {
+      window.electronAPI.readFile('user-preferences.json')
+        .then(data => {
+          const preferences = JSON.parse(data);
+          if (preferences.themeName && Object.keys(themeSettings).includes(preferences.themeName)) {
+            setThemeNameState(preferences.themeName);
+          }
+          if (typeof preferences.isDarkMode === 'boolean') {
+            setIsDarkMode(preferences.isDarkMode);
+          }
+        })
+        .catch(() => {
+          // 文件不存在时使用默认值，不输出错误
+          console.log('User preferences file not found, using defaults');
+        });
+    }
+  }, []);
 
   useEffect(() => {
     // Save preferences to electron-store in Electron environment

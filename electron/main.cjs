@@ -33,7 +33,9 @@ const createWindow = () => {
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile('dist/index.html');
+    // 使用正确的相对路径加载构建后的文件
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    // 生产环境不打开开发者工具
   }
 
   // Handle window closed event

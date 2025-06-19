@@ -4,65 +4,15 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme, themeSettings } from '../contexts/ThemeContext';
 import { ChevronDownIcon, StarIcon as InstallIcon } from './icons'; // Using StarIcon as a placeholder for Install
 import CategorySearch from './CategorySearch';
-import { useAuth } from '../contexts/AuthContext'; 
-
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: Array<string>;
-  readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed',
-    platform: string
-  }>;
-  prompt(): Promise<void>;
-}
+import { useAuth } from '../contexts/AuthContext';
+import { isElectron, supportsNotifications } from '../utils/environment';
 
 const ThemeSwitcher: React.FC = () => {
   const { themeName, setThemeName, theme, isDarkMode, toggleDarkMode } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
 
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [canInstallPWA, setCanInstallPWA] = useState(false);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent Chrome 67 and earlier from automatically showing the prompt
-      e.preventDefault();
-      // Stash the event so it can be triggered later.
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // Update UI notify the user they can add to home screen
-      setCanInstallPWA(true);
-      console.log('PWA install prompt available');
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Check if the app is already installed (displayMode could be standalone, fullscreen, minimal-ui)
-    if (window.matchMedia('(display-mode: standalone)').matches || 
-        (window.navigator as any).standalone === true) { // For Safari
-      setCanInstallPWA(false); // Already installed
-      console.log('PWA already installed or in standalone mode.');
-    }
-
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      return;
-    }
-    // Show the prompt
-    deferredPrompt.prompt();
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to PWA install prompt: ${outcome}`);
-    // We've used the prompt, and can't use it again, discard it
-    setDeferredPrompt(null);
-    setCanInstallPWA(false);
-    setIsOpen(false); // Close dropdown after action
-  };
+  // PWA相关功能已完全移除
 
 
   const availableThemes = Object.entries(themeSettings).map(([key, value]) => ({
@@ -111,19 +61,7 @@ const ThemeSwitcher: React.FC = () => {
             aria-orientation="vertical"
             aria-labelledby="theme-options-menu"
           >
-            {canInstallPWA && (
-              <button
-                onClick={handleInstallClick}
-                className={`flex items-center w-full text-left px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm transition-colors duration-150
-                  ${theme.dropdown.itemText} ${theme.dropdown.itemHoverText} ${theme.dropdown.itemHoverBg}
-                  border-b ${theme.input.border} 
-                `}
-                role="menuitem"
-              >
-                <InstallIcon className="w-4 h-4 mr-2" filled={false} />
-                Install App
-              </button>
-            )}
+            {/* PWA安装按钮已移除 */}
             {availableThemes.map((t) => (
               <button
                 key={t.id}
@@ -167,28 +105,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    // Optional: Request notification permission (example from PWA plan)
-    // Consider when best to ask for this - perhaps after user interaction or specific event.
-    if ('Notification' in window && 'serviceWorker' in navigator) {
-      if (Notification.permission === 'default') { // Only ask if not already granted or denied
-        Notification.requestPermission().then(permission => {
-          if (permission === 'granted') {
-            console.log('Notification permission granted.');
-            // Optionally, show a gentle in-app notification or enable notification-related UI
-            // Example:
-            // navigator.serviceWorker.ready.then(registration => {
-            //   registration.showNotification('Pokedex App Ready', {
-            //     body: 'You can now receive updates!',
-            //     icon: '/icons/icon-192x192.png'
-            //   });
-            // });
-          } else {
-            console.log('Notification permission denied.');
-          }
-        }).catch(err => {
-          console.error('Error requesting notification permission:', err);
-        });
-      }
+    // 简化通知权限处理，只保留Electron环境支持
+    if (supportsNotifications() && isElectron()) {
+      console.log('Notification support available in Electron environment');
+      // TODO: 可以在这里通过IPC向主进程请求通知权限
     }
   }, []);
 
