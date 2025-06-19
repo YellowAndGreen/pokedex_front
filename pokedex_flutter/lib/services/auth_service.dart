@@ -1,5 +1,4 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/auth.dart';
 import 'api_service.dart';
 
 /// 认证服务类
@@ -9,6 +8,7 @@ class AuthService {
   /// SharedPreferences键名
   static const String _tokenKey = 'auth_token';
   static const String _emailKey = 'user_email';
+  static const String _usernameKey = 'username';
   static const String _tokenTypeKey = 'token_type';
 
   /// 单例实例
@@ -21,9 +21,15 @@ class AuthService {
 
   /// 当前用户邮箱
   String? _currentEmail;
+  
+  /// 当前用户名（用于传统登录）
+  String? _currentUsername;
 
   /// 获取当前用户邮箱
   String? get currentEmail => _currentEmail;
+  
+  /// 获取当前用户名
+  String? get currentUsername => _currentUsername;
 
   /// 发送验证码到邮箱
   /// 对应OpenAPI端点: POST /api/send-verification
@@ -59,6 +65,41 @@ class AuthService {
     }
   }
 
+  /// 传统用户名密码登录
+  /// 对应OpenAPI端点: POST /auth/login （兼容传统登录）
+  /// 返回登录是否成功
+  Future<bool> loginWithPassword(String username, String password) async {
+    try {
+      // 使用演示账号逻辑
+      if (username == 'demo' && password == 'demo123') {
+        // 模拟成功的登录响应
+        final mockToken = 'demo_token_${DateTime.now().millisecondsSinceEpoch}';
+        
+        // 保存令牌和用户名到本地存储
+        await _saveToken(mockToken);
+        await _saveTokenType('Bearer');
+        await _saveUsername(username);
+        
+        // 设置API服务的认证令牌
+        _apiService.setAuthToken(mockToken);
+        _currentUsername = username;
+        
+        return true;
+      } else {
+        // 如果有真实的API端点，可以在这里调用
+        // final authResponse = await _apiService.loginWithPassword(username, password);
+        // ... 处理真实的登录响应
+        
+        // 目前返回失败，因为只支持演示账号
+        throw Exception('用户名或密码错误');
+      }
+    } catch (e) {
+      // 登录失败，清除可能存在的旧数据
+      await logout();
+      rethrow;
+    }
+  }
+
   /// 用户登出
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
@@ -66,11 +107,13 @@ class AuthService {
     // 清除本地存储的认证信息
     await prefs.remove(_tokenKey);
     await prefs.remove(_emailKey);
+    await prefs.remove(_usernameKey);
     await prefs.remove(_tokenTypeKey);
     
     // 清除API服务的认证令牌
     _apiService.setAuthToken(null);
     _currentEmail = null;
+    _currentUsername = null;
   }
 
   /// 检查用户是否已登录
@@ -87,6 +130,7 @@ class AuthService {
       
       // 令牌有效，恢复用户状态
       _currentEmail = await getStoredEmail();
+      _currentUsername = await getStoredUsername();
       return true;
     } catch (e) {
       // 验证失败，清除本地数据
@@ -102,6 +146,7 @@ class AuthService {
     if (token != null) {
       _apiService.setAuthToken(token);
       _currentEmail = await getStoredEmail();
+      _currentUsername = await getStoredUsername();
       
       // 验证令牌是否仍然有效
       final isValid = await isLoggedIn();
@@ -130,6 +175,12 @@ class AuthService {
     return prefs.getString(_emailKey);
   }
 
+  /// 获取存储的用户名
+  Future<String?> getStoredUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_usernameKey);
+  }
+
   /// 保存令牌到本地存储
   Future<void> _saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -146,6 +197,12 @@ class AuthService {
   Future<void> _saveEmail(String email) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_emailKey, email);
+  }
+
+  /// 保存用户名到本地存储
+  Future<void> _saveUsername(String username) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_usernameKey, username);
   }
 
   /// 测试受保护路由（验证令牌有效性）
@@ -199,13 +256,4 @@ class AuthService {
     return codeRegex.hasMatch(code);
   }
 
-  // ===== 兼容性方法 =====
-
-  /// 保留兼容性的用户名获取方法（返回邮箱）
-  String? get currentUsername => _currentEmail;
-
-  /// 保留兼容性的用户名存储获取方法（返回邮箱）
-  Future<String?> getStoredUsername() async {
-    return await getStoredEmail();
-  }
 } 

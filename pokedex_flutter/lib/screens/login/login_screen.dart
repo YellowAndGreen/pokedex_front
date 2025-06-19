@@ -96,7 +96,8 @@ class _LoginScreenState extends State<LoginScreen>
     final authProvider = context.read<AuthProvider>();
     
     try {
-      final success = await authProvider.verifyCodeAndLogin(
+      // 使用传统用户名密码登录方式
+      final success = await authProvider.loginWithPassword(
         _usernameController.text.trim(),
         _passwordController.text,
         rememberMe: _rememberMe,
@@ -108,14 +109,32 @@ class _LoginScreenState extends State<LoginScreen>
           const SnackBar(
             content: Text('登录成功！'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
           ),
         );
       }
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = _getErrorMessage(e);
       });
     }
+  }
+
+  /// 根据错误类型返回用户友好的错误消息
+  String _getErrorMessage(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+    
+    if (errorStr.contains('network') || errorStr.contains('connection')) {
+      return '网络连接失败，请检查网络设置';
+    } else if (errorStr.contains('timeout')) {
+      return '连接超时，请稍后重试';
+    } else if (errorStr.contains('unauthorized') || errorStr.contains('login')) {
+      return '用户名或密码错误';
+    } else if (errorStr.contains('server')) {
+      return '服务器错误，请稍后重试';
+    }
+    
+    return '登录失败，请稍后重试';
   }
 
   /// 处理忘记密码
@@ -286,67 +305,82 @@ class _LoginScreenState extends State<LoginScreen>
 
   /// 构建用户名输入框
   Widget _buildUsernameField() {
-    return TextFormField(
-      controller: _usernameController,
-      decoration: InputDecoration(
-        labelText: '用户名',
-        hintText: '请输入用户名',
-        prefixIcon: const Icon(Icons.person_outline),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+    return Semantics(
+      label: '用户名输入框',
+      hint: '请输入您的用户名，至少3个字符',
+      child: TextFormField(
+        controller: _usernameController,
+        decoration: InputDecoration(
+          labelText: '用户名',
+          hintText: '请输入用户名',
+          prefixIcon: const Icon(Icons.person_outline),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          filled: true,
+          fillColor: Theme.of(context).colorScheme.surface,
         ),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surface,
+        textInputAction: TextInputAction.next,
+        autocorrect: false,
+        enableSuggestions: false,
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return '请输入用户名';
+          }
+          if (value.trim().length < 3) {
+            return '用户名至少3个字符';
+          }
+          return null;
+        },
       ),
-      textInputAction: TextInputAction.next,
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return '请输入用户名';
-        }
-        if (value.trim().length < 3) {
-          return '用户名至少3个字符';
-        }
-        return null;
-      },
     );
   }
 
   /// 构建密码输入框
   Widget _buildPasswordField() {
-    return TextFormField(
-      controller: _passwordController,
-      obscureText: !_isPasswordVisible,
-      decoration: InputDecoration(
-        labelText: '密码',
-        hintText: '请输入密码',
-        prefixIcon: const Icon(Icons.lock_outline),
-        suffixIcon: IconButton(
-          icon: Icon(
-            _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+    return Semantics(
+      label: '密码输入框',
+      hint: '请输入您的密码，至少6个字符',
+      child: TextFormField(
+        controller: _passwordController,
+        obscureText: !_isPasswordVisible,
+        decoration: InputDecoration(
+          labelText: '密码',
+          hintText: '请输入密码',
+          prefixIcon: const Icon(Icons.lock_outline),
+          suffixIcon: Semantics(
+            label: _isPasswordVisible ? '隐藏密码' : '显示密码',
+            child: IconButton(
+              icon: Icon(
+                _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+              ),
+              onPressed: () {
+                setState(() {
+                  _isPasswordVisible = !_isPasswordVisible;
+                });
+              },
+            ),
           ),
-          onPressed: () {
-            setState(() {
-              _isPasswordVisible = !_isPasswordVisible;
-            });
-          },
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          filled: true,
+          fillColor: Theme.of(context).colorScheme.surface,
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surface,
+        textInputAction: TextInputAction.done,
+        onFieldSubmitted: (_) => _handleLogin(),
+        autocorrect: false,
+        enableSuggestions: false,
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return '请输入密码';
+          }
+          if (value.length < 6) {
+            return '密码至少6个字符';
+          }
+          return null;
+        },
       ),
-      textInputAction: TextInputAction.done,
-      onFieldSubmitted: (_) => _handleLogin(),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return '请输入密码';
-        }
-        if (value.length < 6) {
-          return '密码至少6个字符';
-        }
-        return null;
-      },
     );
   }
 
@@ -412,27 +446,35 @@ class _LoginScreenState extends State<LoginScreen>
     return SizedBox(
       width: double.infinity,
       height: 48,
-      child: ElevatedButton(
-        onPressed: authProvider.isLoading ? null : _handleLogin,
-        style: ElevatedButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+      child: Semantics(
+        label: '登录按钮',
+        hint: authProvider.isLoading ? '正在登录中...' : '点击进行登录',
+        button: true,
+        child: ElevatedButton(
+          onPressed: authProvider.isLoading ? null : _handleLogin,
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
           ),
-          elevation: 2,
-        ),
-        child: authProvider.isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Text(
-                '登录',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+          child: authProvider.isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text(
+                  '登录',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }

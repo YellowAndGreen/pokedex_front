@@ -190,6 +190,50 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// 传统用户名密码登录方法
+  /// 支持用户名和密码的登录方式
+  Future<bool> loginWithPassword(String username, String password, {bool rememberMe = false}) async {
+    if (_isLoading) return false;
+    
+    try {
+      _setLoading(true);
+      _clearError();
+      
+      // 验证输入
+      final validationError = validateLoginForm(username, password);
+      if (validationError != null) {
+        _setError(validationError);
+        return false;
+      }
+      
+      // 执行登录
+      final success = await _authService.loginWithPassword(username, password);
+      
+      if (success) {
+        _currentUser = username;
+        _isAuthenticated = true;
+        
+        // 如果选择记住用户名，保存到本地存储
+        if (rememberMe) {
+          await _saveUsername(username);
+        } else {
+          await _clearSavedUsername();
+        }
+        
+        notifyListeners();
+        return true;
+      } else {
+        _setError('登录失败：用户名或密码错误');
+        return false;
+      }
+    } catch (e) {
+      _setError('登录失败: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   /// 保留兼容性的login方法（现在使用邮箱验证码）
   @Deprecated('使用 verifyCodeAndLogin 替代')
   Future<bool> login(String email, String code, {bool rememberMe = false}) async {
