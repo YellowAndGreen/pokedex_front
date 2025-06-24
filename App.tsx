@@ -40,6 +40,19 @@ const App: React.FC = () => {
     }
   });
 
+  // 添加超时保护机制，防止首屏动画卡死
+  useEffect(() => {
+    const maxWaitTime = 10000; // 最多等待10秒
+    const timeoutId = setTimeout(() => {
+      if (!isAppReady) {
+        console.warn('Splash animation timeout, forcing app to show');
+        setIsAppReady(true);
+      }
+    }, maxWaitTime);
+
+    return () => clearTimeout(timeoutId);
+  }, [isAppReady]);
+
   // 模拟应用初始化和数据预加载
   useEffect(() => {
     const initializeApp = async () => {

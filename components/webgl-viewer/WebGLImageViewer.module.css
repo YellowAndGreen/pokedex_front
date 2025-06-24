@@ -1,0 +1,230 @@
+/* WebGL图像查看器组件样式 */
+
+.webgl-image-viewer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  border-radius: 8px;
+}
+
+.webgl-viewer-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+  transition: opacity 0.3s ease;
+}
+
+.webgl-viewer-canvas:active {
+  cursor: grabbing;
+}
+
+/* 覆盖层样式 */
+.webgl-viewer-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+}
+
+/* 加载状态样式 */
+.webgl-viewer-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-message {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.loading-quality {
+  font-size: 12px;
+  opacity: 0.7;
+  text-transform: capitalize;
+}
+
+/* 错误状态样式 */
+.webgl-viewer-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.error-message {
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  max-width: 400px;
+}
+
+.error-message h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.error-message p {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.retry-button {
+  background: #fff;
+  color: #dc3545;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+  background: #f8f9fa;
+  transform: translateY(-1px);
+}
+
+.retry-button:active {
+  transform: translateY(0);
+}
+
+/* 调试信息样式 */
+.webgl-viewer-debug {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #00ff00;
+  padding: 12px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  z-index: 1001;
+  max-width: 300px;
+  border: 1px solid #333;
+}
+
+.debug-info h4 {
+  margin: 0 0 8px 0;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  border-bottom: 1px solid #333;
+  padding-bottom: 4px;
+}
+
+.debug-item {
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.debug-item strong {
+  color: #ffd700;
+  margin-right: 8px;
+  min-width: 70px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .webgl-viewer-debug {
+    font-size: 10px;
+    padding: 8px;
+    max-width: 250px;
+  }
+  
+  .loading-message {
+    font-size: 14px;
+  }
+  
+  .error-message {
+    padding: 16px;
+    margin: 0 16px;
+  }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  .webgl-viewer-overlay {
+    background: rgba(0, 0, 0, 0.8);
+  }
+  
+  .webgl-viewer-debug {
+    background: #000;
+    border: 2px solid #fff;
+  }
+}
+
+/* 减少动画模式支持 */
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation: none;
+  }
+  
+  .webgl-viewer-canvas {
+    transition: none;
+  }
+  
+  .retry-button {
+    transition: none;
+  }
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .webgl-image-viewer {
+    background: #111;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  .webgl-viewer-canvas {
+    cursor: default;
+  }
+  
+  .webgl-viewer-canvas:active {
+    cursor: default;
+  }
+  
+  .retry-button:hover {
+    background: #fff;
+    transform: none;
+  }
+} 

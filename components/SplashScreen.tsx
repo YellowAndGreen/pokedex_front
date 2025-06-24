@@ -77,7 +77,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
         left: 0,
         width: '100vw',
         height: '100vh',
-        background: '#0a0a0a',
+        background: '#1A1A2E', // RetroTech Dark 主背景色
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -89,7 +89,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
         transition: 'opacity 0.3s ease-in-out'
       }}
     >
-      {/* 几何背景装饰 - 暂时使用基础实现，待后续组件创建后替换 */}
+      {/* 几何背景装饰 - 使用RetroTech Dark配色 */}
       <div
         className="geometric-background"
         style={{
@@ -99,14 +99,14 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
           width: '100%',
           height: '100%',
           background: `
-            radial-gradient(circle at 20% 30%, rgba(64, 64, 64, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 70%, rgba(64, 64, 64, 0.08) 0%, transparent 50%),
-            radial-gradient(circle at 40% 80%, rgba(96, 96, 96, 0.05) 0%, transparent 50%)
+            radial-gradient(circle at 20% 30%, rgba(46, 229, 157, 0.08) 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, rgba(110, 231, 183, 0.06) 0%, transparent 50%),
+            radial-gradient(circle at 40% 80%, rgba(16, 185, 129, 0.04) 0%, transparent 50%)
           `
         }}
       />
 
-      {/* 网格背景 - 基础实现 */}
+      {/* 网格背景 - 使用emerald色调 */}
       <div
         className="grid-background"
         style={{
@@ -115,17 +115,17 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
           left: 0,
           width: '100%',
           height: '100%',
-          opacity: 0.02,
+          opacity: 0.03,
           backgroundImage: `
-            linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px)
+            linear-gradient(rgba(46, 229, 157, 0.2) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(46, 229, 157, 0.2) 1px, transparent 1px)
           `,
           backgroundSize: '30px 30px',
           animation: 'gridMove 20s linear infinite'
         }}
       />
 
-      {/* 旋转光线效果 - 基础实现 */}
+      {/* 旋转光线效果 - 使用emerald色调 */}
       <div
         className="rotating-light"
         style={{
@@ -137,9 +137,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
           background: `conic-gradient(
             from 0deg,
             transparent,
-            rgba(255, 255, 255, 0.01),
+            rgba(46, 229, 157, 0.02),
             transparent,
-            rgba(255, 255, 255, 0.02),
+            rgba(110, 231, 183, 0.03),
             transparent
           )`,
           animation: 'rotate 30s linear infinite'
@@ -148,7 +148,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
 
       {/* 主要内容区域 */}
       <div className="splash-content" style={{ textAlign: 'center', zIndex: 10 }}>
-        {/* Logo容器 - 基础实现 */}
+        {/* Logo容器 */}
         <div
           className="logo-container"
           style={{
@@ -159,62 +159,62 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
             marginBottom: '2rem'
           }}
         >
-          {/* Logo背景光晕 */}
+          {/* Logo背景光晕 - 使用emerald色调 */}
           <div
             className="logo-glow"
             style={{
               position: 'absolute',
               width: '8rem',
               height: '8rem',
-              background: 'radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(46, 229, 157, 0.15) 0%, transparent 70%)',
               borderRadius: '50%',
               animation: 'glowPulse 3s ease-in-out infinite'
             }}
           />
 
-          {/* Logo */}
+          {/* Logo - 使用RetroTech Dark配色 */}
           <div
             className="logo"
             style={{
               width: '4.5rem',
               height: '4.5rem',
-              background: 'linear-gradient(135deg, #1a1a1a, #2d2d2d)',
-              border: '1px solid #333',
+              background: 'linear-gradient(135deg, #151515, #1f2937)', // RetroTech Dark卡片背景渐变
+              border: '1px solid #374151', // 深灰边框
               borderRadius: '1.5rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: `
-                0 0 0 1px rgba(255, 255, 255, 0.05),
-                0 8px 32px rgba(0, 0, 0, 0.4),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1)
+                0 0 0 1px rgba(46, 229, 157, 0.1),
+                0 8px 32px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(46, 229, 157, 0.1)
               `,
               animation: 'logoFloat 4s ease-in-out infinite',
               backdropFilter: 'blur(10px)'
             }}
           >
-            {/* 鸟类图标 SVG */}
+            {/* 鸟类图标 SVG - 使用emerald色调 */}
             <svg
               width="28"
               height="28"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#e5e5e5"
+              stroke="#10B981"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
               {/* 鸟类轮廓 */}
-              <path d="M12 2l3 7h7l-5.5 4 2 7-6.5-5-6.5 5 2-7L2 9h7l3-7z" fill="#e5e5e5" fillOpacity="0.2" />
+              <path d="M12 2l3 7h7l-5.5 4 2 7-6.5-5-6.5 5 2-7L2 9h7l3-7z" fill="#2EE59D" fillOpacity="0.2" />
               {/* 鸟身体 */}
               <path d="M5 12c0 0 2-1 7-1s7 1 7 1" />
-              <path d="M12 2c-1 0-2 1-2 2.5S11 7 12 7s2-1.5 2-2.5S13 2 12 2z" fill="#e5e5e5" fillOpacity="0.3" />
+              <path d="M12 2c-1 0-2 1-2 2.5S11 7 12 7s2-1.5 2-2.5S13 2 12 2z" fill="#6EE7B7" fillOpacity="0.3" />
               {/* 翅膀 */}
               <path d="M7 9c-1.5 0-3 1-3 3s1.5 2 3 2" />
               <path d="M17 9c1.5 0 3 1 3 3s-1.5 2-3 2" />
               {/* 鸟眼睛 */}
-              <circle cx="10" cy="6" r="0.5" fill="#e5e5e5" />
-              <circle cx="14" cy="6" r="0.5" fill="#e5e5e5" />
+              <circle cx="10" cy="6" r="0.5" fill="#2EE59D" />
+              <circle cx="14" cy="6" r="0.5" fill="#2EE59D" />
               {/* 鸟尾巴 */}
               <path d="M12 15c0 2-1 4-1 4s1-2 1-4 1-4 1-4-1 2-1 4z" />
             </svg>
@@ -242,7 +242,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
             style={{
               width: '3rem',
               height: '2px',
-              background: 'linear-gradient(90deg, transparent, #666, transparent)',
+              background: 'linear-gradient(90deg, transparent, #10B981, transparent)', // RetroTech emerald色调
               margin: '0 auto',
               animation: 'lineGrow 1.5s ease-out both'
             }}
@@ -250,7 +250,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
           
           <p
             style={{
-              color: '#a3a3a3',
+              color: '#9CA3AF', // RetroTech zinc-400
               fontSize: '0.95rem',
               margin: 0,
               fontWeight: 400,
@@ -279,7 +279,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
             style={{
               width: '12rem',
               height: '2px',
-              background: '#1a1a1a',
+              background: '#151515', // RetroTech Dark卡片背景
               borderRadius: '1px',
               overflow: 'hidden',
               position: 'relative'
@@ -290,7 +290,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
               style={{
                 width: `${animationState.progress}%`,
                 height: '100%',
-                background: 'linear-gradient(90deg, transparent, #666, #999, #666, transparent)',
+                background: 'linear-gradient(90deg, transparent, #10B981, #2EE59D, #10B981, transparent)', // RetroTech emerald渐变
                 transition: 'width 0.1s ease-out',
                 animation: animationState.phase === 'loading' ? 'progressMove 2s ease-in-out infinite' : 'none'
               }}

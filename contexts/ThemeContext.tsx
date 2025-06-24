@@ -385,7 +385,7 @@ interface ThemeContextType {
   toggleDarkMode: () => void;
 }
 
-const defaultThemeName: ThemeName = 'modern';
+const defaultThemeName: ThemeName = 'retroTechDark';
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 

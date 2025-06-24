@@ -19,6 +19,10 @@ import {
 } from './icons'; // Added ImagePlaceholderIcon
 import LoadingSpinner from './LoadingSpinner';
 import Modal from './Modal';
+import WebGLImageViewer from './webgl-viewer/WebGLImageViewer';
+import ProgressiveImageLoader from './webgl-viewer/ProgressiveImageLoader';
+import DebugHelper from './webgl-viewer/debug-helper';
+import type { WebGLImageViewerRef } from './webgl-viewer/interfaces';
 
 interface ImageDetailModalProps {
   image: ImageRead | null;
@@ -80,6 +84,8 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [isFullImageLoading, setIsFullImageLoading] = useState(false);
   const [imageKey, setImageKey] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState<string>('');
+  const [webglError, setWebglError] = useState<string | null>(null);
 
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [isImageMaximized, setIsImageMaximized] = useState(false);
@@ -87,6 +93,7 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
   const [imageScale, setImageScale] = useState(1);
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
   const maximizedViewRef = useRef<HTMLDivElement>(null);
+  const webglViewerRef = useRef<WebGLImageViewerRef>(null);
 
   const inputBaseClasses = `block w-full px-3 py-2 text-sm ${theme.input.bg} ${theme.input.border} ${theme.card.rounded} shadow-sm ${theme.input.focusRing} ${theme.input.text} ${theme.input.placeholderText}`;
 
@@ -140,6 +147,8 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
       setImagePosition({ x: 0, y: 0 });
       setImageLoadFailed(false);
       setImageKey(prev => prev + 1);
+      setLoadingMessage('');
+      setWebglError(null);
 
       const transformedThumbnailUrl = getRelativeUrl(image.thumbnail_url);
       const transformedImageUrl = getRelativeUrl(image.image_url);
@@ -174,6 +183,7 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
         setIsFullImageLoading(false);
       }
     } else if (!isOpen) {
+      // 清理资源和状态
       setCurrentDisplaySrc(null);
       setIsFullImageLoading(false);
       setImageLoadFailed(false);
@@ -182,6 +192,14 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
       setIsImageMaximized(false);
       setImageScale(1);
       setImagePosition({ x: 0, y: 0 });
+      setLoadingMessage('');
+      setWebglError(null);
+      
+      // 清理WebGL查看器资源
+      if (webglViewerRef.current) {
+        // 重置查看器状态以释放资源
+        webglViewerRef.current.resetZoom(false);
+      }
     }
   }, [isOpen, image, resetForm]);
 
@@ -238,6 +256,35 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
     onClose,
   ]);
 
+  // 性能监控和内存优化
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // 内存使用监控（仅在开发环境）
+    let memoryCheckInterval: NodeJS.Timeout;
+    
+    if (process.env.NODE_ENV === 'development' && 'performance' in window && 'memory' in (window.performance as any)) {
+      memoryCheckInterval = setInterval(() => {
+        const memory = (window.performance as any).memory;
+        const usedMB = Math.round(memory.usedJSHeapSize / 1048576);
+        const totalMB = Math.round(memory.totalJSHeapSize / 1048576);
+        
+        console.log(`内存使用情况: ${usedMB}MB / ${totalMB}MB`);
+        
+        // 如果内存使用过高，建议清理
+        if (usedMB > 100) {
+          console.warn('内存使用较高，建议清理WebGL资源');
+        }
+      }, 5000);
+    }
+
+    return () => {
+      if (memoryCheckInterval) {
+        clearInterval(memoryCheckInterval);
+      }
+    };
+  }, [isOpen]);
+
   const handleUpdate = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!image) {
@@ -248,9 +295,11 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
     setError(null);
     try {
       const updatedData: ImageUpdate = {
+        category_id: null,
         title: title || null,
         description: description || null,
         tags: tagsStringForInput.trim() ? tagsStringForInput.trim() : null,
+        set_as_category_thumbnail: null,
       };
       const updatedImage = await updateImageMetadata(image.id, updatedData);
       onUpdate(updatedImage);
@@ -271,7 +320,13 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
     setIsLoading(true);
     setError(null);
     try {
-      await updateImageMetadata(image.id, { set_as_category_thumbnail: true });
+      await updateImageMetadata(image.id, { 
+        category_id: null,
+        title: null,
+        description: null,
+        tags: null,
+        set_as_category_thumbnail: true 
+      });
       setToastState({ message: 'Set as category thumbnail!', type: 'success' });
       onThumbnailUpdated();
     } catch (err) {
@@ -519,7 +574,7 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
             className={
               maximized
                 ? 'shadow-2xl'
-                : `w-full h-auto max-h-[50vh] md:max-h-[70vh] ${theme.card.rounded} shadow-md`
+                : `max-w-full h-auto max-h-[50vh] md:max-h-[70vh] ${theme.card.rounded} shadow-md`
             }
             onClick={e => {
               if (maximized) {
@@ -551,7 +606,7 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
     // Render placeholder if srcToUse is null or imageLoadFailed is true
     return (
       <div
-        className={`w-full h-full flex items-center justify-center ${maximized ? 'bg-transparent' : `${theme.skeletonBase} ${theme.skeletonHighlight} ${theme.card.rounded}`} ${!maximized ? 'max-h-[50vh] md:max-h-[70vh]' : ''}`}
+        className={`flex items-center justify-center ${maximized ? 'w-full h-full bg-transparent' : `w-full max-h-[50vh] md:max-h-[70vh] min-h-[200px] ${theme.skeletonBase} ${theme.skeletonHighlight} ${theme.card.rounded}`}`}
       >
         <ImagePlaceholderIcon
           className={`w-16 h-16 sm:w-20 sm:h-20 opacity-50 ${theme.card.secondaryText}`}
@@ -570,16 +625,133 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
           className='fixed inset-0 z-[60] bg-black/85 flex items-center justify-center p-0 overflow-hidden'
-          onClick={() => {
-            if (imageScale === 1 && imagePosition.x === 0 && imagePosition.y === 0) {
-              setIsImageMaximized(false);
-            }
-          }}
-          onWheel={handleWheelZoom}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
         >
-          {renderImageOrPlaceholder(true)}
+          <ProgressiveImageLoader
+            ref={webglViewerRef}
+            highResUrl={getRelativeUrl(image?.image_url) || ''}
+            thumbnailUrl={getRelativeUrl(image?.thumbnail_url) || ''}
+            className='w-full h-full'
+            onLoadingStateChange={(isLoading: boolean, message?: string, stage?: 'thumbnail' | 'high-res') => {
+              // 处理加载状态显示
+              if (message) {
+                setLoadingMessage(message);
+              }
+              
+              // 清除之前的错误状态
+              if (isLoading) {
+                setWebglError(null);
+              }
+              
+              // 检查是否有加载失败
+              if (!isLoading && message && message.includes('失败')) {
+                setWebglError(message);
+                console.warn('WebGL加载失败:', message);
+              }
+              
+              // 根据加载阶段显示不同的状态
+              if (stage === 'thumbnail') {
+                console.log('显示缩略图预览');
+              } else if (stage === 'high-res') {
+                console.log('加载高分辨率图片');
+              }
+              
+              console.log('Progressive loader state:', isLoading, message, stage);
+            }}
+            onQualityChange={(quality: 'low' | 'medium' | 'high') => {
+              console.log('图片质量变化:', quality);
+              // 可以在这里显示质量指示器
+            }}
+            onZoomChange={(originalScale: number, relativeScale: number) => {
+              // 可以在这里处理缩放状态
+              console.log('WebGL Viewer zoom:', originalScale, relativeScale);
+            }}
+            wheel={{
+              step: 0.1,
+              wheelDisabled: false,
+              touchPadDisabled: false,
+            }}
+            pinch={{
+              step: 0.1,
+              disabled: false,
+            }}
+            doubleClick={{
+              step: 1.5,
+              disabled: false,
+              mode: 'toggle',
+              animationTime: 300,
+            }}
+            panning={{
+              disabled: false,
+              velocityDisabled: false,
+            }}
+            limitToBounds={true}
+            centerOnInit={true}
+            smooth={true}
+            minScale={0.1}
+            maxScale={10}
+            initialScale={1}
+            debug={process.env.NODE_ENV === 'development'}
+          />
+          
+          {/* WebGL错误信息显示 */}
+          {webglError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 text-center">
+                <div className="text-red-500 mb-4">
+                  <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+                  图片加载失败
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                  {webglError}
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <button
+                    onClick={() => {
+                      setWebglError(null);
+                      // 重新初始化WebGL查看器
+                      if (webglViewerRef.current) {
+                        window.location.reload();
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                  >
+                    刷新重试
+                  </button>
+                  <button
+                    onClick={() => {
+                      setWebglError(null);
+                      setIsImageMaximized(false);
+                    }}
+                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
+                  >
+                    关闭
+                  </button>
+                </div>
+                
+                {/* 调试工具 (仅在开发环境显示) */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mt-4 max-h-96 overflow-y-auto">
+                    <DebugHelper
+                      imageUrl={getRelativeUrl(image?.image_url) || ''}
+                      thumbnailUrl={getRelativeUrl(image?.thumbnail_url) || ''}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* 加载状态显示 */}
+          {loadingMessage && !webglError && (
+            <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-2 rounded-lg text-sm z-20">
+              {loadingMessage}
+            </div>
+          )}
+          
           <button
             onClick={e => {
               e.stopPropagation();
@@ -595,8 +767,8 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
               onClick={e => {
                 e.stopPropagation();
                 onPreviousImage();
-                setImageScale(1);
-                setImagePosition({ x: 0, y: 0 });
+                // 重置WebGL查看器状态
+                webglViewerRef.current?.resetZoom();
               }}
               className={`${navButtonBaseClass} left-4 sm:left-6`}
               aria-label='Previous image'
@@ -609,8 +781,8 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
               onClick={e => {
                 e.stopPropagation();
                 onNextImage();
-                setImageScale(1);
-                setImagePosition({ x: 0, y: 0 });
+                // 重置WebGL查看器状态
+                webglViewerRef.current?.resetZoom();
               }}
               className={`${navButtonBaseClass} right-4 sm:right-6`}
               aria-label='Next image'
@@ -633,7 +805,7 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
       >
         <div className='md:flex md:space-x-4 lg:space-x-6'>
           <div
-            className='relative w-full md:w-1/2 mb-4 md:mb-0 group/imagecontainer'
+            className='relative w-full md:w-1/2 mb-4 md:mb-0 group/imagecontainer flex items-center justify-center min-h-[300px] md:min-h-[400px]'
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >

@@ -19,9 +19,9 @@ export interface GeometricBackgroundProps {
 const DEFAULT_PROPS: Required<GeometricBackgroundProps> = {
   opacity: 1,
   colors: {
-    primary: 'rgba(64, 64, 64, 0.1)',
-    secondary: 'rgba(64, 64, 64, 0.08)',
-    tertiary: 'rgba(96, 96, 96, 0.05)'
+    primary: 'rgba(46, 229, 157, 0.08)', // RetroTech Dark emerald色调
+    secondary: 'rgba(110, 231, 183, 0.06)', // 更浅的emerald色调
+    tertiary: 'rgba(16, 185, 129, 0.04)' // 深emerald色调
   },
   positions: {
     circle1: { x: '20%', y: '30%' },
