@@ -15,6 +15,7 @@
     "check-all": "npm run type-check && npm run lint && npm run format:check"
   },
   "dependencies": {
+    "@playwright/test": "^1.53.1",
     "axios": "1.7.2",
     "framer-motion": "^12.15.0",
     "react": "^19.1.0",
