@@ -9,7 +9,9 @@ interface ErrorDisplayProps {
 
 const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onRetry }) => {
   const { theme } = useTheme();
-  if (!error) return null;
+  if (!error) {
+    return null;
+  }
 
   const errorMessage = typeof error === 'string' ? error : error.message;
   const errorDetails = typeof error === 'object' && error?.details;
@@ -18,8 +20,8 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onRetry }) => {
   let errorBgColor = 'bg-red-100 dark:bg-red-900';
   let errorBorderColor = 'border-red-500 dark:border-red-400';
   let errorTextColor = 'text-red-700 dark:text-red-200';
-  let errorButtonBg = theme.button.danger;
-  let errorButtonText = theme.button.dangerText;
+  const errorButtonBg = theme.button.danger;
+  const errorButtonText = theme.button.dangerText;
 
   if (theme.name === 'Nature Inspired') {
     errorBgColor = 'bg-orange-100 dark:bg-orange-900';
@@ -33,13 +35,15 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onRetry }) => {
     // Retry button for pokedex theme uses its danger colors
   }
 
-
   return (
-    <div className={`${errorBgColor} border-l-4 ${errorBorderColor} ${errorTextColor} p-4 ${theme.card.rounded} shadow-md`} role="alert">
-      <p className="font-bold">Error</p>
+    <div
+      className={`${errorBgColor} border-l-4 ${errorBorderColor} ${errorTextColor} p-4 ${theme.card.rounded} shadow-md`}
+      role='alert'
+    >
+      <p className='font-bold'>Error</p>
       <p>{errorMessage}</p>
       {errorDetails && errorDetails.length > 0 && (
-        <ul className="mt-2 list-disc list-inside text-sm">
+        <ul className='mt-2 list-disc list-inside text-sm'>
           {errorDetails.map((detail, index) => (
             <li key={index}>
               {detail.loc.join(' -> ')}: {detail.msg}

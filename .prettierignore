@@ -1,0 +1,46 @@
+# 构建输出
+dist/
+build/
+
+# 依赖
+node_modules/
+
+# 日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 缓存
+.cache/
+.parcel-cache/
+
+# 测试覆盖率
+coverage/
+
+# PWA 相关
+public/service-worker.js
+public/sw.js
+
+# 自动生成的文件
+*.d.ts
+
+# 静态资源
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+
+# 数据文件
+*.json
+public/data/
+
+# 文档
+CHANGELOG.md
+LICENSE
+
+# 配置文件（避免循环格式化）
+.eslintrc.cjs
+.prettierrc.cjs
+vite.config.ts 

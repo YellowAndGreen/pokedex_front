@@ -1,4 +1,3 @@
-
 export const API_BASE_URL = '/'; // Replace with your actual API base URL
 
 export const IMAGE_BASE_URL = 'http://39.107.88.124:8000'; // Replace with your actual API base URL

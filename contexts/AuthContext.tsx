@@ -10,7 +10,9 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem('access_token'));
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
+    !!localStorage.getItem('access_token')
+  );
   const navigate = useNavigate();
   const location = useLocation(); // To track location changes for re-check
 
@@ -24,12 +26,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     checkAuthStatus(); // Check on initial mount and location change
 
     window.addEventListener('storage', checkAuthStatus); // Listen for direct localStorage changes from other tabs/windows
-    
+
     // Custom event listener for in-app token changes (e.g. if not using context's login/logout everywhere)
     // This is a fallback, prefer using context's login/logout.
     const handleTokenChange = () => checkAuthStatus();
     window.addEventListener('tokenChanged', handleTokenChange);
-
 
     return () => {
       window.removeEventListener('storage', checkAuthStatus);
@@ -48,7 +49,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('access_token');
     setIsAuthenticated(false);
     window.dispatchEvent(new Event('tokenChanged')); // Notify other parts if needed
-    navigate('/'); 
+    navigate('/');
   };
 
   return (

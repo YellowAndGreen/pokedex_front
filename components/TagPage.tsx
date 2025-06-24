@@ -1,18 +1,16 @@
-
-import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import Masonry from 'react-masonry-css';
 import { motion } from 'framer-motion';
-import { searchImagesByTag } from '../services/api';
-import type { ImageRead, ApiError } from '../types';
-import LoadingSpinner from './LoadingSpinner';
-import ErrorDisplay from './ErrorDisplay';
-import ImageCard from './ImageCard';
-import ImageDetailModal from './ImageDetailModal';
-import ImageCardSkeleton from './ImageCardSkeleton';
-import { useTheme } from '../contexts/ThemeContext';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import Masonry from 'react-masonry-css';
+import { useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { searchImagesByTag } from '../services/api';
+import type { ApiError, ImageRead } from '../types';
+import ErrorDisplay from './ErrorDisplay';
 import { PhotoIcon } from './icons';
+import ImageCard from './ImageCard';
+import ImageCardSkeleton from './ImageCardSkeleton';
+import ImageDetailModal from './ImageDetailModal';
 
 const ITEMS_PER_PAGE = 20;
 const SESSION_STORAGE_SCROLL_PREFIX = 'tagPageScrollPos_';
@@ -20,32 +18,37 @@ const SESSION_STORAGE_COUNT_PREFIX = 'tagPageItemCount_';
 
 const TagPage: React.FC = () => {
   const { tagName: encodedTagName } = useParams<{ tagName: string }>();
-  const navigate = useNavigate();
   const { theme } = useTheme();
   const { isAuthenticated } = useAuth();
 
   const [allImages, setAllImages] = useState<ImageRead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ApiError | string | null>(null);
-  
+
   const [selectedImage, setSelectedImage] = useState<ImageRead | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<number | null>(null);
   const [isImageDetailModalOpen, setIsImageDetailModalOpen] = useState(false);
 
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
   const [initialSessionStateRestored, setInitialSessionStateRestored] = useState(false);
-  
+
   const decodedTagName = useMemo(() => {
     try {
       return encodedTagName ? decodeURIComponent(encodedTagName) : '';
     } catch (e) {
-      console.error("Failed to decode tagName:", encodedTagName, e);
+      console.error('Failed to decode tagName:', encodedTagName, e);
       return encodedTagName || ''; // Fallback to encoded if decoding fails
     }
   }, [encodedTagName]);
 
-  const scrollPositionKey = useMemo(() => `${SESSION_STORAGE_SCROLL_PREFIX}${decodedTagName}`, [decodedTagName]);
-  const itemCountKey = useMemo(() => `${SESSION_STORAGE_COUNT_PREFIX}${decodedTagName}`, [decodedTagName]);
+  const scrollPositionKey = useMemo(
+    () => `${SESSION_STORAGE_SCROLL_PREFIX}${decodedTagName}`,
+    [decodedTagName]
+  );
+  const itemCountKey = useMemo(
+    () => `${SESSION_STORAGE_COUNT_PREFIX}${decodedTagName}`,
+    [decodedTagName]
+  );
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -58,10 +61,10 @@ const TagPage: React.FC = () => {
 
   const fetchImagesByTag = useCallback(async () => {
     if (!decodedTagName) {
-        setError({ message: "Tag name is missing."});
-        setIsLoading(false);
-        return;
-    };
+      setError({ message: 'Tag name is missing.' });
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -80,12 +83,17 @@ const TagPage: React.FC = () => {
   }, [fetchImagesByTag]);
 
   useLayoutEffect(() => {
-    if (!isLoading && allImages.length > 0 && !initialSessionStateRestored && typeof window !== 'undefined') {
-        const savedScroll = sessionStorage.getItem(scrollPositionKey);
-        if (savedScroll) {
-            requestAnimationFrame(() => window.scrollTo(0, parseInt(savedScroll, 10)));
-        }
-        setInitialSessionStateRestored(true);
+    if (
+      !isLoading &&
+      allImages.length > 0 &&
+      !initialSessionStateRestored &&
+      typeof window !== 'undefined'
+    ) {
+      const savedScroll = sessionStorage.getItem(scrollPositionKey);
+      if (savedScroll) {
+        requestAnimationFrame(() => window.scrollTo(0, parseInt(savedScroll, 10)));
+      }
+      setInitialSessionStateRestored(true);
     }
   }, [isLoading, allImages, initialSessionStateRestored, scrollPositionKey]);
 
@@ -96,13 +104,12 @@ const TagPage: React.FC = () => {
         sessionStorage.setItem(itemCountKey, String(displayCount));
       }
     };
-    
+
     // Save on unmount
     return () => {
       saveState();
     };
   }, [displayCount, scrollPositionKey, itemCountKey, initialSessionStateRestored]);
-
 
   const displayedImages = useMemo(() => {
     return allImages.slice(0, displayCount);
@@ -128,37 +135,42 @@ const TagPage: React.FC = () => {
   };
 
   const handleNextImage = () => {
-    if (displayedImages && currentImageIndex !== null && currentImageIndex < displayedImages.length - 1) {
+    if (
+      displayedImages &&
+      currentImageIndex !== null &&
+      currentImageIndex < displayedImages.length - 1
+    ) {
       const newIndex = currentImageIndex + 1;
       setSelectedImage(displayedImages[newIndex]);
       setCurrentImageIndex(newIndex);
     }
   };
-  
+
   const handleImageUpdateInModal = (updatedImage: ImageRead) => {
-    setAllImages(prevImages => prevImages.map(img => img.id === updatedImage.id ? updatedImage : img));
+    setAllImages(prevImages =>
+      prevImages.map(img => (img.id === updatedImage.id ? updatedImage : img))
+    );
     if (selectedImage && selectedImage.id === updatedImage.id) {
-        setSelectedImage(updatedImage);
+      setSelectedImage(updatedImage);
     }
   };
 
   const handleImageDeleteInModal = (deletedImageId: string) => {
     setAllImages(prevImages => prevImages.filter(img => img.id !== deletedImageId));
     if (selectedImage && selectedImage.id === deletedImageId) {
-        setIsImageDetailModalOpen(false);
-        setSelectedImage(null);
-        setCurrentImageIndex(null);
+      setIsImageDetailModalOpen(false);
+      setSelectedImage(null);
+      setCurrentImageIndex(null);
     }
   };
-
 
   const breakpointColumnsObj = {
     default: 5,
     1536: 5, // 2xl
     1280: 4, // xl
     1024: 3, // lg
-    768: 3,  // md
-    640: 2   // sm
+    768: 3, // md
+    640: 2, // sm
   };
 
   const renderContent = () => {
@@ -166,8 +178,8 @@ const TagPage: React.FC = () => {
       return (
         <Masonry
           breakpointCols={breakpointColumnsObj}
-          className="my-masonry-grid"
-          columnClassName="my-masonry-grid_column"
+          className='my-masonry-grid'
+          columnClassName='my-masonry-grid_column'
         >
           {Array.from({ length: ITEMS_PER_PAGE / 2 }).map((_, index) => (
             <ImageCardSkeleton key={index} />
@@ -184,7 +196,7 @@ const TagPage: React.FC = () => {
       return (
         <div className={`text-center py-10 ${theme.card.secondaryText} animate-fadeIn`}>
           <PhotoIcon className={`w-16 h-16 mx-auto mb-4 opacity-50 ${theme.card.secondaryText}`} />
-          <p className="text-lg sm:text-xl">No images found for tag: "{decodedTagName}"</p>
+          <p className='text-lg sm:text-xl'>No images found for tag: "{decodedTagName}"</p>
         </div>
       );
     }
@@ -193,8 +205,8 @@ const TagPage: React.FC = () => {
       <>
         <Masonry
           breakpointCols={breakpointColumnsObj}
-          className="my-masonry-grid"
-          columnClassName="my-masonry-grid_column"
+          className='my-masonry-grid'
+          columnClassName='my-masonry-grid_column'
         >
           {displayedImages.map((image, index) => (
             <motion.div
@@ -202,14 +214,22 @@ const TagPage: React.FC = () => {
               layout
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: [0.25, 1, 0.5, 1], delay: (index % ITEMS_PER_PAGE) * 0.03 }}
+              transition={{
+                duration: 0.4,
+                ease: [0.25, 1, 0.5, 1],
+                delay: (index % ITEMS_PER_PAGE) * 0.03,
+              }}
             >
-              <ImageCard image={image} onClick={() => openImageModal(image, index)} forceSquare={false} />
+              <ImageCard
+                image={image}
+                onClick={() => openImageModal(image, index)}
+                forceSquare={false}
+              />
             </motion.div>
           ))}
         </Masonry>
         {displayCount < allImages.length && (
-          <div className="mt-8 text-center">
+          <div className='mt-8 text-center'>
             <button
               onClick={handleLoadMore}
               className={`px-6 py-3 ${theme.button.primary} ${theme.button.primaryText} ${theme.card.rounded} ${theme.button.transition} text-sm font-semibold hover:opacity-90 active:scale-95`}
@@ -221,20 +241,22 @@ const TagPage: React.FC = () => {
       </>
     );
   };
-  
-  const titleTextClass = theme.name === 'Neon Galaxy' || theme.name === 'RetroTech Dark' 
-    ? theme.brandColor 
-    : theme.text;
 
+  const titleTextClass =
+    theme.name === 'Neon Galaxy' || theme.name === 'RetroTech Dark' ? theme.brandColor : theme.text;
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div className={`p-4 sm:p-5 ${theme.card.bg} ${theme.card.rounded} ${theme.card.shadow} ${theme.card.border || ''} animate-fadeInUp`}>
+    <div className='space-y-6 sm:space-y-8'>
+      <div
+        className={`p-4 sm:p-5 ${theme.card.bg} ${theme.card.rounded} ${theme.card.shadow} ${theme.card.border || ''} animate-fadeInUp`}
+      >
         <h1 className={`text-2xl sm:text-3xl font-bold ${titleTextClass} mb-1`}>
           Tag: {decodedTagName}
         </h1>
         <p className={`${theme.card.secondaryText} text-sm sm:text-base`}>
-          {isLoading ? 'Loading images...' : `${allImages.length} image${allImages.length !== 1 ? 's' : ''} found.`}
+          {isLoading
+            ? 'Loading images...'
+            : `${allImages.length} image${allImages.length !== 1 ? 's' : ''} found.`}
         </p>
       </div>
 
@@ -253,7 +275,9 @@ const TagPage: React.FC = () => {
           onPreviousImage={handlePreviousImage}
           onNextImage={handleNextImage}
           hasPreviousImage={currentImageIndex !== null && currentImageIndex > 0}
-          hasNextImage={currentImageIndex !== null && currentImageIndex < displayedImages.length - 1}
+          hasNextImage={
+            currentImageIndex !== null && currentImageIndex < displayedImages.length - 1
+          }
           isAuthenticated={isAuthenticated}
         />
       )}

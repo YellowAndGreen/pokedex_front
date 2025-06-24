@@ -1,7 +1,6 @@
-
-import React, { useEffect, useState, useId } from 'react';
-import { XMarkIcon } from './icons';
+import React, { useEffect, useId, useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { XMarkIcon } from './icons';
 
 interface ModalProps {
   isOpen: boolean;
@@ -13,12 +12,11 @@ interface ModalProps {
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
   const { theme } = useTheme();
-  const [isMounted, setIsMounted] = useState(false); 
-  const [isVisible, setIsVisible] = useState(false); 
+  const [isMounted, setIsMounted] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   // Use React.useId for generating unique IDs for ARIA attributes
-  const titleId = useId ? `modal-title-${useId()}` : `modal-title-${Math.random().toString(36).substring(2, 9)}`;
-
+  const titleId = `modal-title-${useId()}`;
 
   useEffect(() => {
     let openTimer: ReturnType<typeof setTimeout>;
@@ -28,12 +26,12 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
       setIsMounted(true);
       openTimer = setTimeout(() => {
         setIsVisible(true);
-      }, 10); 
+      }, 10);
     } else {
       setIsVisible(false);
       closeTimer = setTimeout(() => {
         setIsMounted(false);
-      }, 300); 
+      }, 300);
     }
 
     return () => {
@@ -49,7 +47,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
       document.body.style.overflow = '';
     }
     return () => {
-      document.body.style.overflow = ''; 
+      document.body.style.overflow = '';
     };
   }, [isVisible]);
 
@@ -73,7 +71,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
                     transition-opacity duration-300 ease-in-out 
                     bg-black ${isVisible ? 'bg-opacity-60 dark:bg-opacity-75 backdrop-blur-sm' : 'bg-opacity-0 pointer-events-none'}`}
         onClick={onClose}
-        aria-hidden="true"
+        aria-hidden='true'
       />
 
       {/* Modal Dialog Positioning Wrapper: z-index 50 (above header) */}
@@ -81,7 +79,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
         className={`fixed inset-0 flex justify-center items-center z-50 
                     p-2 sm:p-4 
                     ${isVisible ? '' : 'pointer-events-none'} 
-                    pointer-events-none`} 
+                    pointer-events-none`}
       >
         {/* Actual Modal Content Box */}
         <div
@@ -90,22 +88,27 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
                      transform transition-all duration-300 modal-transition 
                      ${isVisible ? 'scale-100 opacity-100' : 'scale-90 opacity-0'}
                      pointer-events-auto`} // Make content interactive
-          onClick={(e) => e.stopPropagation()} // Prevent clicks on content from closing modal
-          role="dialog"
-          aria-modal="true"
+          onClick={e => e.stopPropagation()} // Prevent clicks on content from closing modal
+          role='dialog'
+          aria-modal='true'
           aria-labelledby={titleId}
         >
-          <div className="flex justify-between items-center mb-3 sm:mb-4">
-            <h2 id={titleId} className={`text-lg sm:text-xl font-semibold ${theme.modal.titleText}`}>{title}</h2>
+          <div className='flex justify-between items-center mb-3 sm:mb-4'>
+            <h2
+              id={titleId}
+              className={`text-lg sm:text-xl font-semibold ${theme.modal.titleText}`}
+            >
+              {title}
+            </h2>
             <button
               onClick={onClose}
               className={`${theme.iconButton} ${theme.button.transition} p-1 rounded-full hover:bg-opacity-20 focus:outline-none focus:ring-2 ${theme.input.focusRing.replace('focus:ring-2', '').trim()}`}
-              aria-label="Close modal"
+              aria-label='Close modal'
             >
-              <XMarkIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+              <XMarkIcon className='w-5 h-5 sm:w-6 sm:h-6' />
             </button>
           </div>
-          <div className="overflow-y-auto max-h-[80vh] sm:max-h-[75vh] md:max-h-[70vh] pr-1 scrollbar-thin">
+          <div className='overflow-y-auto max-h-[80vh] sm:max-h-[75vh] md:max-h-[70vh] pr-1 scrollbar-thin'>
             {children}
           </div>
         </div>

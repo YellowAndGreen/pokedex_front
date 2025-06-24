@@ -1,5 +1,3 @@
-
-
 // Based on OpenAPI components.schemas
 
 export interface ValidationError {
@@ -43,7 +41,7 @@ export interface ImageRead {
   mime_type?: string | null;
   size_bytes?: number | null;
   description?: string | null;
-  tags?: TagRead[]; 
+  tags?: TagRead[];
   id: string; // uuid
   category_id: string; // uuid
   created_at: string; // date-time

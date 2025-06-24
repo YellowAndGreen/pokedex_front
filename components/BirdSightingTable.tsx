@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 // This component is being replaced by BirdSightingTimeline.tsx
@@ -20,7 +19,7 @@ interface BirdSightingTableProps {
 }
 
 const BirdSightingTable: React.FC<BirdSightingTableProps> = ({ records }) => {
-  console.warn("BirdSightingTable is deprecated and should be replaced with BirdSightingTimeline.");
+  console.warn('BirdSightingTable is deprecated and should be replaced with BirdSightingTimeline.');
   if (records.length === 0) {
     return <p>No bird sighting records available. (Table Deprecated)</p>;
   }
@@ -29,7 +28,9 @@ const BirdSightingTable: React.FC<BirdSightingTableProps> = ({ records }) => {
       <p>BirdSightingTable - This component is deprecated.</p>
       {/* Minimalistic rendering or placeholder if needed during transition */}
       <ul>
-        {records.slice(0, 5).map(r => <li key={r.id}>{r.chineseName}</li>)}
+        {records.slice(0, 5).map(r => (
+          <li key={r.id}>{r.chineseName}</li>
+        ))}
       </ul>
     </div>
   );

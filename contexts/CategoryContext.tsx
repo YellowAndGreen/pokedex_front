@@ -1,5 +1,11 @@
-
-import React, { createContext, useState, useContext, useEffect, useCallback, ReactNode } from 'react';
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from 'react';
 import { getCategories } from '../services/api';
 import type { CategoryReadWithImages, ApiError } from '../types';
 import { MAX_CATEGORIES_TO_LOAD_IMAGES_FROM } from '../constants';
@@ -44,7 +50,9 @@ export const CategoryProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [fetchCategoriesCallback]);
 
   return (
-    <CategoryContext.Provider value={{ categories, isLoading, error, fetchCategories: fetchCategoriesCallback }}>
+    <CategoryContext.Provider
+      value={{ categories, isLoading, error, fetchCategories: fetchCategoriesCallback }}
+    >
       {children}
     </CategoryContext.Provider>
   );

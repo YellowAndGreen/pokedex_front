@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -16,7 +15,12 @@ const LoadingSpinner: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'md' }
   const spinnerColorClass = `border-t-${mainColorName}`;
 
   return (
-    <div className="flex justify-center items-center" role="status" aria-live="polite" aria-label="Loading">
+    <div
+      className='flex justify-center items-center'
+      role='status'
+      aria-live='polite'
+      aria-label='Loading'
+    >
       <div
         className={`animate-spin rounded-full border-solid border-gray-200 dark:border-gray-700 ${spinnerColorClass} ${sizeClasses[size]}`}
       ></div>
