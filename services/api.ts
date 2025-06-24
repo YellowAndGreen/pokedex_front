@@ -14,9 +14,26 @@ import type {
   HTTPValidationError,
   ApiError,
   ValidationError,
-  TokenResponse,
   TagRead, // Added TagRead here
 } from '../types';
+// 导入 Zod 相关函数和 Schema
+import { 
+  TokenResponseSchema,
+  CategoryReadSchema,
+  CategoryListResponseSchema,
+  CategoryReadWithImagesSchema,
+  ImageReadSchema,
+  ImageListResponseSchema,
+  TagListResponseSchema,
+  SpeciesReadSchema,
+  SpeciesSuggestionsResponseSchema,
+  // 导入从 Schema 推导的类型
+  type TokenResponse
+} from '../schemas';
+import { 
+  safeParseApiResponse, 
+  formatApiErrorWithZod
+} from './api-validation';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -120,14 +137,12 @@ export async function sendVerificationCode(email: string): Promise<any> {
 export async function verifyCodeAndGetToken(email: string, code: string): Promise<TokenResponse> {
   const url = `/api/verify?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`;
   try {
-    const response = await apiClient.post<TokenResponse>(url);
-    if (!response.data || !response.data.access_token) {
-      console.error('Token verification response missing access_token:', response.data);
-      throw formatApiError({ message: '登录成功，但未收到有效的Token。' }, url);
-    }
-    return response.data;
+    const response = await apiClient.post(url);
+    // 使用 Zod 验证响应数据
+    return safeParseApiResponse(response.data, TokenResponseSchema, '登录响应数据格式错误');
   } catch (error) {
-    const formattedError = formatApiError(error, url);
+    const formattedError = formatApiErrorWithZod(error, url);
+    // 特殊错误信息处理
     if (
       formattedError.status === 422 &&
       formattedError.message.includes('Invalid verification code')
@@ -144,10 +159,10 @@ export async function verifyCodeAndGetToken(email: string, code: string): Promis
 export async function createCategory(categoryData: CategoryCreate): Promise<CategoryRead> {
   const url = `/api/categories/`;
   try {
-    const response = await apiClient.post<CategoryRead>(url, categoryData);
-    return response.data;
+    const response = await apiClient.post(url, categoryData);
+    return safeParseApiResponse(response.data, CategoryReadSchema, '创建分类响应数据格式错误');
   } catch (error) {
-    throw formatApiError(error, url);
+    throw formatApiErrorWithZod(error, url);
   }
 }
 
@@ -157,30 +172,30 @@ export async function getCategories(
 ): Promise<CategoryListResponse> {
   const url = `/api/categories/?skip=${skip}&limit=${limit}`;
   try {
-    const response = await apiClient.get<CategoryListResponse>(url);
-    return response.data;
+    const response = await apiClient.get(url);
+    return safeParseApiResponse(response.data, CategoryListResponseSchema, '获取分类列表响应数据格式错误');
   } catch (error) {
-    throw formatApiError(error, url);
+    throw formatApiErrorWithZod(error, url);
   }
 }
 
 export async function getCategoryWithImages(categoryId: string): Promise<CategoryReadWithImages> {
   const url = `/api/categories/${categoryId}/`;
   try {
-    const response = await apiClient.get<CategoryReadWithImages>(url);
-    return response.data;
+    const response = await apiClient.get(url);
+    return safeParseApiResponse(response.data, CategoryReadWithImagesSchema, '获取分类详情响应数据格式错误');
   } catch (error) {
-    throw formatApiError(error, url);
+    throw formatApiErrorWithZod(error, url);
   }
 }
 
 export async function getCategoryByName(categoryName: string): Promise<CategoryRead> {
   const url = `/api/categories/by-name/${encodeURIComponent(categoryName)}/`;
   try {
-    const response = await apiClient.get<CategoryRead>(url);
-    return response.data;
+    const response = await apiClient.get(url);
+    return safeParseApiResponse(response.data, CategoryReadSchema, '根据名称获取分类响应数据格式错误');
   } catch (error) {
-    throw formatApiError(error, url);
+    throw formatApiErrorWithZod(error, url);
   }
 }
 
@@ -190,10 +205,10 @@ export async function updateCategory(
 ): Promise<CategoryRead> {
   const url = `/api/categories/${categoryId}/`;
   try {
-    const response = await apiClient.patch<CategoryRead>(url, categoryData);
-    return response.data;
+    const response = await apiClient.patch(url, categoryData);
+    return safeParseApiResponse(response.data, CategoryReadSchema, '更新分类响应数据格式错误');
   } catch (error) {
-    throw formatApiError(error, url);
+    throw formatApiErrorWithZod(error, url);
   }
 }
 
@@ -229,22 +244,22 @@ export async function uploadImage(imageData: BodyUploadImage): Promise<ImageRead
   }
 
   try {
-    const response = await apiClient.post<ImageRead>(url, formData, {
+    const response = await apiClient.post(url, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return response.data;
+    return safeParseApiResponse(response.data, ImageReadSchema, '上传图片响应数据格式错误');
   } catch (error) {
-    throw formatApiError(error, url);
+    throw formatApiErrorWithZod(error, url);
   }
 }
 
 export async function getImage(imageId: string): Promise<ImageRead> {
   const url = `/api/images/${imageId}/`;
   try {
-    const response = await apiClient.get<ImageRead>(url);
-    return response.data;
+    const response = await apiClient.get(url);
+    return safeParseApiResponse(response.data, ImageReadSchema, '获取图片详情响应数据格式错误');
   } catch (error) {
-    throw formatApiError(error, url);
+    throw formatApiErrorWithZod(error, url);
   }
 }
 
@@ -254,10 +269,10 @@ export async function updateImageMetadata(
 ): Promise<ImageRead> {
   const url = `/api/images/${imageId}/`;
   try {
-    const response = await apiClient.put<ImageRead>(url, imageData);
-    return response.data;
+    const response = await apiClient.put(url, imageData);
+    return safeParseApiResponse(response.data, ImageReadSchema, '更新图片元数据响应数据格式错误');
   } catch (error) {
-    throw formatApiError(error, url);
+    throw formatApiErrorWithZod(error, url);
   }
 }
 
@@ -284,10 +299,10 @@ export async function searchImagesByTag(tagQuery: string): Promise<ImageRead[]> 
   const url = `/api/images/by-tags/?${queryParams.toString()}`;
 
   try {
-    const response = await apiClient.get<ImageRead[]>(url);
-    return response.data;
+    const response = await apiClient.get(url);
+    return safeParseApiResponse(response.data, ImageListResponseSchema, '按标签搜索图片响应数据格式错误');
   } catch (error) {
-    throw formatApiError(error, url);
+    throw formatApiErrorWithZod(error, url);
   }
 }
 
@@ -295,10 +310,10 @@ export async function searchImagesByTag(tagQuery: string): Promise<ImageRead[]> 
 export async function getAllTags(): Promise<TagRead[]> {
   const url = `/api/tags/`;
   try {
-    const response = await apiClient.get<TagRead[]>(url);
-    return response.data;
+    const response = await apiClient.get(url);
+    return safeParseApiResponse(response.data, TagListResponseSchema, '获取标签列表响应数据格式错误');
   } catch (error) {
-    throw formatApiError(error, url);
+    throw formatApiErrorWithZod(error, url);
   }
 }
 
@@ -309,19 +324,19 @@ export async function getSpeciesSuggestions(
 ): Promise<SpeciesSuggestionsResponse> {
   const url = `/api/suggestions?q=${encodeURIComponent(query)}&limit=${limit}`;
   try {
-    const response = await apiClient.get<SpeciesSuggestionsResponse>(url);
-    return response.data;
+    const response = await apiClient.get(url);
+    return safeParseApiResponse(response.data, SpeciesSuggestionsResponseSchema, '获取物种建议响应数据格式错误');
   } catch (error) {
-    throw formatApiError(error, url);
+    throw formatApiErrorWithZod(error, url);
   }
 }
 
 export async function getSpeciesDetails(chineseName: string): Promise<SpeciesRead> {
   const url = `/api/details/${encodeURIComponent(chineseName)}`;
   try {
-    const response = await apiClient.get<SpeciesRead>(url);
-    return response.data;
+    const response = await apiClient.get(url);
+    return safeParseApiResponse(response.data, SpeciesReadSchema, '获取物种详情响应数据格式错误');
   } catch (error) {
-    throw formatApiError(error, url);
+    throw formatApiErrorWithZod(error, url);
   }
 }

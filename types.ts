@@ -1,129 +1,45 @@
-// Based on OpenAPI components.schemas
+/**
+ * 类型定义文件
+ * 
+ * 说明: 从 Zod Schema 推导的类型定义
+ * 这确保了运行时验证和编译时类型的一致性
+ */
 
-export interface ValidationError {
-  loc: (string | number)[];
-  msg: string;
-  type: string;
-}
+// 从 Zod Schema 导入推导的类型
+export {
+  // 错误处理类型
+  type ValidationError,
+  type HTTPValidationError,
+  type ApiError,
+  
+  // 认证相关类型
+  type TokenResponse,
+  
+  // 分类相关类型
+  type CategoryCreate,
+  type CategoryRead,
+  type CategoryUpdate,
+  type CategoryReadWithImages,
+  type CategoryListResponse,
+  
+  // 图片相关类型
+  type ImageRead,
+  type ImageUpdate,
+  type BodyUploadImage,
+  type ExifData,
+  type ImageListResponse,
+  
+  // 标签相关类型
+  type TagRead,
+  type TagListResponse,
+  
+  // 物种相关类型
+  type SpeciesRead,
+  type SpeciesSuggestionsResponse,
+} from './schemas';
 
-export interface HTTPValidationError {
-  detail?: ValidationError[];
-}
+// 导入需要的单独类型用于兼容性别名
+import type { SpeciesRead } from './schemas';
 
-export interface CategoryCreate {
-  name: string;
-  description?: string | null;
-}
-
-export interface CategoryRead {
-  name: string;
-  description?: string | null;
-  id: string; // uuid
-  created_at: string; // date-time
-  updated_at: string; // date-time
-  thumbnail_path?: string | null;
-  thumbnail_url?: string | null;
-}
-
-export interface TagRead {
-  name: string;
-  id: string; // uuid
-  created_at: string; // date-time
-  updated_at: string; // date-time
-}
-
-export interface ImageRead {
-  title?: string | null;
-  original_filename?: string | null;
-  stored_filename?: string | null;
-  relative_file_path?: string | null;
-  relative_thumbnail_path?: string | null;
-  mime_type?: string | null;
-  size_bytes?: number | null;
-  description?: string | null;
-  tags?: TagRead[];
-  id: string; // uuid
-  category_id: string; // uuid
-  created_at: string; // date-time
-  updated_at?: string | null; // date-time
-  file_metadata?: Record<string, any> | null;
-  exif_info?: ExifData | null;
-  image_url: string;
-  thumbnail_url?: string | null;
-}
-
-export interface CategoryReadWithImages extends CategoryRead {
-  images?: ImageRead[];
-}
-
-export interface CategoryUpdate {
-  name?: string | null;
-  description?: string | null;
-}
-
-export interface BodyUploadImage {
-  file: File;
-  category_id: string; // uuid
-  title?: string | null;
-  description?: string | null;
-  tags?: string | null; // Comma-separated
-  set_as_category_thumbnail?: boolean | null;
-}
-
-export interface ImageUpdate {
-  title?: string | null;
-  description?: string | null;
-  tags?: string | null; // Comma-separated. This remains a string for updates as per OpenAPI.
-  category_id?: string | null; // uuid
-  set_as_category_thumbnail?: boolean | null;
-}
-
-export interface ExifData {
-  make?: string | null;
-  model?: string | null;
-  lens_make?: string | null;
-  bits_per_sample?: string | null;
-  date_time_original?: string | null;
-  exposure_time?: string | null;
-  f_number?: string | null;
-  exposure_program?: string | null;
-  iso_speed_rating?: string | null;
-  focal_length?: string | null;
-  lens_specification?: string | null;
-  lens_model?: string | null;
-  exposure_mode?: string | null;
-  cfa_pattern?: string | null;
-  color_space?: string | null;
-  white_balance?: string | null;
-}
-
-export interface SpeciesRead {
-  order_details: string;
-  family_details: string;
-  genus_details: string;
-  name_chinese: string;
-  name_english?: string | null;
-  name_latin?: string | null;
-  href?: string | null;
-  pinyin_full?: string | null;
-  pinyin_initials?: string | null;
-  id: number;
-}
-
-// For API responses that are arrays
-export type CategoryListResponse = CategoryRead[];
-export type SpeciesSuggestionsResponse = string[];
-
-// API Error structure
-export interface ApiError {
-  message: string;
-  details?: ValidationError[];
-  status?: number;
-}
-
-// Auth Types
-export interface TokenResponse {
-  access_token: string;
-  token_type: string;
-  // expires_in?: number; // Optional
-}
+// 保留的兼容性类型别名
+export type SpeciesListResponse = SpeciesRead[];
