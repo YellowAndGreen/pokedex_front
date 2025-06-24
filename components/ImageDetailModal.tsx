@@ -534,6 +534,10 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
     const isActuallyLoading =
       isFullImageLoading &&
       (!maximized || (maximized && srcToUse === getRelativeUrl(image?.image_url)));
+    
+    // 检查当前显示的是否为缩略图（用于调整显示逻辑）
+    const isThumbnailDisplayed = !maximized && isFullImageLoading && 
+      srcToUse === getRelativeUrl(image?.thumbnail_url);
 
     if (srcToUse && !imageLoadFailed) {
       return (
@@ -569,12 +573,17 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
                 : {
                     objectFit: 'contain',
                     cursor: 'pointer',
+                    // 确保缩略图也能充分利用可用空间
+                    width: isThumbnailDisplayed ? '100%' : 'auto',
+                    height: isThumbnailDisplayed ? '100%' : 'auto',
                   }
             }
             className={
               maximized
                 ? 'shadow-2xl'
-                : `max-w-full h-auto max-h-[50vh] md:max-h-[70vh] ${theme.card.rounded} shadow-md`
+                : isThumbnailDisplayed 
+                  ? `w-full h-full max-h-[50vh] md:max-h-[70vh] ${theme.card.rounded} shadow-md`
+                  : `max-w-full h-auto max-h-[50vh] md:max-h-[70vh] ${theme.card.rounded} shadow-md`
             }
             onClick={e => {
               if (maximized) {

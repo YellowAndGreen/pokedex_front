@@ -109,11 +109,15 @@ export class WebGLImageViewerEngine extends ImageViewerEngineBase {
       // 加载图片获取尺寸信息
       const img = await loadImage(src);
       
-      console.log('图片加载成功，尺寸:', img.width, 'x', img.height);
+      console.log('图片加载成功，实际尺寸:', img.width, 'x', img.height);
       
-      this.imageWidth = img.width;
-      this.imageHeight = img.height;
+      // 优先使用props传入的尺寸，否则使用实际图片尺寸
+      // 这样可以确保缩略图使用目标图片的尺寸信息进行缩放计算
+      this.imageWidth = this.targetImageWidth || img.width;
+      this.imageHeight = this.targetImageHeight || img.height;
       this.imageLoaded = true;
+      
+      console.log('使用的图片尺寸:', this.imageWidth, 'x', this.imageHeight);
 
       // 创建主纹理
       if (this.gl) {
@@ -165,25 +169,53 @@ export class WebGLImageViewerEngine extends ImageViewerEngineBase {
 
     const { gl } = this;
 
-    // 清空画布
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    // 检查WebGL上下文是否丢失
+    if (gl.isContextLost()) {
+      console.warn('WebGL上下文已丢失，跳过渲染');
+      return;
+    }
 
-    // 使用着色器程序
-    gl.useProgram(this.program);
+    // 检查关键WebGL资源是否有效
+    if (!this.program || !this.positionBuffer || !this.texCoordBuffer) {
+      console.warn('WebGL资源无效，跳过渲染:', {
+        hasProgram: !!this.program,
+        hasPositionBuffer: !!this.positionBuffer,
+        hasTexCoordBuffer: !!this.texCoordBuffer
+      });
+      return;
+    }
 
-    // 创建变换矩阵
-    const matrix = this.createTransformMatrix();
-    gl.uniformMatrix3fv(this.matrixLocation, false, matrix);
+    // 检查program是否被删除
+    if (!gl.isProgram(this.program)) {
+      console.warn('WebGL程序已被删除，跳过渲染');
+      return;
+    }
 
-    // 设置透明度
-    gl.uniform1f(this.opacityLocation, 1.0);
+    try {
+      // 清空画布
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
 
-    // 渲染主纹理或瓦片
-    if (this.shouldUseMainTexture()) {
-      this.renderMainTexture();
-    } else {
-      this.renderTiles();
+      // 使用着色器程序
+      gl.useProgram(this.program);
+
+      // 创建变换矩阵
+      const matrix = this.createTransformMatrix();
+      gl.uniformMatrix3fv(this.matrixLocation, false, matrix);
+
+      // 设置透明度
+      gl.uniform1f(this.opacityLocation, 1.0);
+
+      // 渲染主纹理或瓦片
+      if (this.shouldUseMainTexture()) {
+        this.renderMainTexture();
+      } else {
+        this.renderTiles();
+      }
+    } catch (error) {
+      console.error('WebGL渲染错误:', error);
+      // 可能需要重新初始化WebGL
+      this.handleRenderError();
     }
   }
 
@@ -199,6 +231,10 @@ export class WebGLImageViewerEngine extends ImageViewerEngineBase {
     this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this));
     this.canvas.addEventListener('touchmove', this.handleTouchMove.bind(this));
     this.canvas.addEventListener('touchend', this.handleTouchEnd.bind(this));
+
+    // WebGL上下文事件
+    this.canvas.addEventListener('webglcontextlost', this.handleContextLost.bind(this));
+    this.canvas.addEventListener('webglcontextrestored', this.handleContextRestored.bind(this));
 
     // 阻止右键菜单
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -217,6 +253,10 @@ export class WebGLImageViewerEngine extends ImageViewerEngineBase {
     this.canvas.removeEventListener('touchstart', this.handleTouchStart.bind(this));
     this.canvas.removeEventListener('touchmove', this.handleTouchMove.bind(this));
     this.canvas.removeEventListener('touchend', this.handleTouchEnd.bind(this));
+
+    // WebGL上下文事件
+    this.canvas.removeEventListener('webglcontextlost', this.handleContextLost.bind(this));
+    this.canvas.removeEventListener('webglcontextrestored', this.handleContextRestored.bind(this));
 
     this.canvas.removeEventListener('contextmenu', (e) => e.preventDefault());
     window.removeEventListener('resize', this.handleResize.bind(this));
@@ -368,20 +408,45 @@ export class WebGLImageViewerEngine extends ImageViewerEngineBase {
   // 纹理渲染
   private shouldUseMainTexture(): boolean {
     // 如果缩放比例较小或瓦片系统未准备好，使用主纹理
-    return this.scale <= 1.5 || !this.textureWorkerInitialized || !this.mainTexture;
+    const useMain = this.scale <= 1.5 || !this.textureWorkerInitialized || !this.mainTexture;
+    console.log('纹理选择决策:', {
+      scale: this.scale,
+      textureWorkerInitialized: this.textureWorkerInitialized,
+      hasMainTexture: !!this.mainTexture,
+      useMainTexture: useMain
+    });
+    return useMain;
   }
 
   private renderMainTexture(): void {
-    if (!this.gl || !this.mainTexture) return;
+    if (!this.gl || !this.mainTexture) {
+      console.warn('无法渲染主纹理:', { 
+        hasGL: !!this.gl, 
+        hasMainTexture: !!this.mainTexture,
+        imageLoaded: this.imageLoaded
+      });
+      return;
+    }
 
     const { gl } = this;
 
-    // 绑定主纹理
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.mainTexture);
-    gl.uniform1i(this.textureLocation, 0);
+    // 检查纹理是否有效
+    if (!gl.isTexture(this.mainTexture)) {
+      console.warn('主纹理已被删除，跳过渲染');
+      return;
+    }
 
-    this.drawGeometry();
+    try {
+      // 绑定主纹理
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, this.mainTexture);
+      gl.uniform1i(this.textureLocation, 0);
+
+      this.drawGeometry();
+      console.log('主纹理渲染完成');
+    } catch (error) {
+      console.error('主纹理渲染失败:', error);
+    }
   }
 
   private renderTiles(): void {
@@ -474,18 +539,28 @@ export class WebGLImageViewerEngine extends ImageViewerEngineBase {
 
     const { gl } = this;
 
-    // 绑定位置缓冲
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-    gl.enableVertexAttribArray(this.positionLocation);
-    gl.vertexAttribPointer(this.positionLocation, 2, gl.FLOAT, false, 0, 0);
+    // 检查缓冲区是否有效
+    if (!gl.isBuffer(this.positionBuffer) || !gl.isBuffer(this.texCoordBuffer)) {
+      console.warn('几何缓冲区无效，跳过绘制');
+      return;
+    }
 
-    // 绑定纹理坐标缓冲
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.texCoordBuffer);
-    gl.enableVertexAttribArray(this.texCoordLocation);
-    gl.vertexAttribPointer(this.texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+    try {
+      // 绑定位置缓冲
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+      gl.enableVertexAttribArray(this.positionLocation);
+      gl.vertexAttribPointer(this.positionLocation, 2, gl.FLOAT, false, 0, 0);
 
-    // 绘制
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+      // 绑定纹理坐标缓冲
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.texCoordBuffer);
+      gl.enableVertexAttribArray(this.texCoordLocation);
+      gl.vertexAttribPointer(this.texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+
+      // 绘制
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    } catch (error) {
+      console.error('几何绘制失败:', error);
+    }
   }
 
   // 事件处理
@@ -865,6 +940,25 @@ export class WebGLImageViewerEngine extends ImageViewerEngineBase {
     this.initializeEngine().then(() => {
       this.loadImage(this.imageSrc);
     }).catch(console.error);
+  }
+
+  private handleRenderError(): void {
+    console.warn('WebGL渲染错误，尝试重新初始化');
+    try {
+      // 清理现有资源
+      this.cleanup();
+      // 重新初始化WebGL
+      this.initializeEngine().then(() => {
+        if (this.imageSrc) {
+          this.loadImage(this.imageSrc);
+        }
+      }).catch((error) => {
+        console.error('WebGL重新初始化失败:', error);
+        this.notifyLoadingStateChange(false, '图片渲染失败', 'unknown');
+      });
+    } catch (error) {
+      console.error('处理渲染错误时发生异常:', error);
+    }
   }
 
   // 公共API方法

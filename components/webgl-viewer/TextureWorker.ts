@@ -14,7 +14,7 @@ import type {
 import { TILE_SIZE } from './constants';
 
 // 工作线程内部状态
-let sourceImage: HTMLImageElement | null = null;
+let sourceImage: ImageBitmap | null = null;
 let imageWidth: number = 0;
 let imageHeight: number = 0;
 let isInitialized: boolean = false;
@@ -106,16 +106,20 @@ async function handleCreateTile(payload: WorkerCreateTileMessage['payload']): Pr
 /**
  * 在工作线程中加载图片
  */
-function loadImageInWorker(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
+async function loadImageInWorker(url: string): Promise<ImageBitmap> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP错误: ${response.status}`);
+    }
     
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`图片加载失败: ${url}`));
+    const blob = await response.blob();
+    const imageBitmap = await createImageBitmap(blob);
     
-    img.src = url;
-  });
+    return imageBitmap;
+  } catch (error) {
+    throw new Error(`图片加载失败: ${url} - ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 /**

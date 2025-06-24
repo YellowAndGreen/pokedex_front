@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import WebGLImageViewer from './WebGLImageViewer';
 import type { WebGLImageViewerRef, WebGLImageViewerProps } from './interfaces';
 
-interface ProgressiveImageLoaderProps extends Omit<WebGLImageViewerProps, 'src' | 'onLoadingStateChange'> {
+interface ProgressiveImageLoaderProps extends Omit<WebGLImageViewerProps, 'src' | 'onLoadingStateChange' | 'width' | 'height'> {
   /** 高分辨率图片URL */
   highResUrl: string;
   /** 缩略图URL（可选，用于快速预览） */
@@ -23,6 +23,25 @@ const ProgressiveImageLoader = React.forwardRef<WebGLImageViewerRef, Progressive
     const [currentSrc, setCurrentSrc] = useState<string>('');
     const [loadingStage, setLoadingStage] = useState<'init' | 'thumbnail' | 'high-res' | 'complete'>('init');
     const [highResLoaded, setHighResLoaded] = useState(false);
+    const [targetImageDimensions, setTargetImageDimensions] = useState<{ width: number; height: number } | null>(null);
+    
+    // 获取目标图片尺寸（高分辨率图片的尺寸）
+    const getTargetImageDimensions = async (url: string): Promise<{ width: number; height: number }> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        img.onload = () => {
+          resolve({ width: img.width, height: img.height });
+        };
+        
+        img.onerror = (error) => {
+          reject(error);
+        };
+        
+        img.src = url;
+      });
+    };
     
     // 预加载高分辨率图片
     const preloadHighRes = () => {
@@ -82,17 +101,33 @@ const ProgressiveImageLoader = React.forwardRef<WebGLImageViewerRef, Progressive
         // 重置状态
         setCurrentSrc('');
         setHighResLoaded(false);
+        setTargetImageDimensions(null);
         
+        // 如果有缩略图，立即开始加载缩略图，并行获取目标图片尺寸
         if (thumbnailUrl && thumbnailUrl !== highResUrl) {
-          // 先尝试使用缩略图
+          // 立即开始缩略图验证和目标图片尺寸获取（并行执行）
           setLoadingStage('thumbnail');
-          onLoadingStateChange?.(true, '正在验证预览图...', 'thumbnail');
+          onLoadingStateChange?.(true, '正在加载预览图...', 'thumbnail');
           
-          const thumbnailValid = await loadThumbnail(thumbnailUrl);
+          // 并行执行缩略图验证和目标尺寸获取
+          const [thumbnailValid, dimensions] = await Promise.allSettled([
+            loadThumbnail(thumbnailUrl),
+            getTargetImageDimensions(highResUrl)
+          ]);
           
           if (!isMounted) return;
           
-          if (thumbnailValid) {
+          // 处理目标尺寸获取结果
+          if (dimensions.status === 'fulfilled') {
+            setTargetImageDimensions(dimensions.value);
+            console.log('目标图片尺寸:', dimensions.value);
+          } else {
+            console.warn('获取目标图片尺寸失败:', dimensions.reason);
+          }
+          
+          // 处理缩略图验证结果
+          if (thumbnailValid.status === 'fulfilled' && thumbnailValid.value) {
+            console.log('缩略图验证成功，立即显示');
             setCurrentSrc(thumbnailUrl);
             setLoadingStage('thumbnail');
             onQualityChange?.('low');
@@ -113,11 +148,25 @@ const ProgressiveImageLoader = React.forwardRef<WebGLImageViewerRef, Progressive
             }
           }
         } else if (highResUrl) {
-          // 直接加载高分辨率图片
-          setCurrentSrc(highResUrl);
-          setLoadingStage('high-res');
-          onLoadingStateChange?.(true, '正在加载图片...', 'high-res');
-          onQualityChange?.('medium');
+          // 没有缩略图，直接加载高分辨率图片
+          onLoadingStateChange?.(true, '正在获取图片信息...', 'high-res');
+          
+          try {
+            const dimensions = await getTargetImageDimensions(highResUrl);
+            if (isMounted) {
+              setTargetImageDimensions(dimensions);
+              console.log('目标图片尺寸:', dimensions);
+            }
+          } catch (error) {
+            console.warn('获取图片尺寸失败，但继续加载:', error);
+          }
+          
+          if (isMounted) {
+            setCurrentSrc(highResUrl);
+            setLoadingStage('high-res');
+            onLoadingStateChange?.(true, '正在加载图片...', 'high-res');
+            onQualityChange?.('medium');
+          }
         } else {
           // 没有可用的图片URL
           setLoadingStage('complete');
@@ -185,6 +234,8 @@ const ProgressiveImageLoader = React.forwardRef<WebGLImageViewerRef, Progressive
         ref={ref}
         {...otherProps}
         src={currentSrc}
+        width={targetImageDimensions?.width}
+        height={targetImageDimensions?.height}
         onLoadingStateChange={handleWebGLLoadingStateChange}
       />
     );

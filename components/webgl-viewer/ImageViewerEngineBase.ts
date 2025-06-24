@@ -83,12 +83,16 @@ export abstract class ImageViewerEngineBase {
   protected onLoadingStateChange?: (isLoading: boolean, message?: string, quality?: 'high' | 'medium' | 'low' | 'unknown') => void;
   protected onImageCopied?: () => void;
 
-  // 图片源
+  // 图片源和目标尺寸
   protected imageSrc: string = '';
+  protected targetImageWidth: number | undefined;
+  protected targetImageHeight: number | undefined;
 
   constructor(canvas: HTMLCanvasElement, props: WebGLImageViewerProps) {
     this.canvas = canvas;
     this.imageSrc = props.src;
+    this.targetImageWidth = props.width;
+    this.targetImageHeight = props.height;
 
     // 合并配置参数
     this.config = {
@@ -198,6 +202,14 @@ export abstract class ImageViewerEngineBase {
     }
     if (props.onImageCopied !== undefined) {
       this.onImageCopied = props.onImageCopied;
+    }
+
+    // 更新目标尺寸
+    if (props.width !== undefined) {
+      this.targetImageWidth = props.width;
+    }
+    if (props.height !== undefined) {
+      this.targetImageHeight = props.height;
     }
 
     // 如果图片源改变，重新加载图片
