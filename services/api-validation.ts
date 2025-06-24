@@ -29,9 +29,12 @@ export function safeParseApiResponse<T>(
     return schema.parse(data);
   } catch (error) {
     if (isValidationError(error)) {
-      console.error('API响应验证失败:', error.issues);
+      console.error('API响应验证失败:', errorMessage);
+      console.error('原始数据:', JSON.stringify(data, null, 2));
+      console.error('验证错误详情:', error.issues);
       throw zodErrorToApiError(error, errorMessage);
     }
+    console.error('非验证错误:', error);
     throw createApiError(errorMessage);
   }
 }

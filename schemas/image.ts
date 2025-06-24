@@ -51,7 +51,7 @@ export const ImageReadSchema = z.object({
   updated_at: OptionalDateTimeSchema,
   file_metadata: RecordSchema,
   exif_info: ExifDataSchema.nullable(),
-  image_url: z.string().url('无效的图片URL'),
+  image_url: z.string(), // 可能是相对路径，不强制要求URL格式
   thumbnail_url: OptionalStringSchema,
 });
 

@@ -8,8 +8,40 @@ import { z } from 'zod';
 // UUID 验证器
 export const UuidSchema = z.string().uuid('无效的UUID格式');
 
-// 日期时间验证器 (ISO 8601 格式)
-export const DateTimeSchema = z.string().datetime('无效的日期时间格式');
+// 日期时间验证器 (兼容FastAPI常见的 ISO 8601 格式)
+export const DateTimeSchema = z.string()
+  .refine((dateStr) => {
+    // 调试：记录实际收到的日期时间格式
+    if (typeof dateStr !== 'string') {
+      console.log('DateTimeSchema: 收到非字符串类型:', typeof dateStr, dateStr);
+      return false;
+    }
+    
+    // FastAPI常见的日期时间格式模式
+    const patterns = [
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/, // 2023-12-07T10:30:00
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/, // 2023-12-07T10:30:00Z
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+$/, // 2023-12-07T10:30:00.123456
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$/, // 2023-12-07T10:30:00.123456Z
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/, // 2023-12-07T10:30:00+08:00
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+[+-]\d{2}:\d{2}$/, // 2023-12-07T10:30:00.123456+08:00
+    ];
+    
+    const matchesPattern = patterns.some(pattern => pattern.test(dateStr));
+    if (!matchesPattern) {
+      console.log('DateTimeSchema: 不符合预期ISO格式的日期字符串:', dateStr);
+    }
+    
+    // 尝试解析日期字符串
+    const date = new Date(dateStr);
+    const isValid = !isNaN(date.getTime());
+    
+    if (!isValid) {
+      console.log('DateTimeSchema: 无法解析的日期字符串:', dateStr);
+    }
+    
+    return matchesPattern && isValid;
+  }, '无效的日期时间格式');
 
 // 可选的日期时间验证器
 export const OptionalDateTimeSchema = DateTimeSchema.nullable();

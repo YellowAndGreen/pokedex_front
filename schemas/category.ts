@@ -32,13 +32,36 @@ export const CategoryUpdateSchema = z.object({
   description: OptionalStringSchema,
 });
 
-// 带图片的分类读取 Schema (使用 z.lazy 避免循环引用)
+// 简化的图片Schema，用于分类详情（避免循环引用）
+const ImageForCategorySchema = z.object({
+  id: UuidSchema,
+  category_id: UuidSchema,
+  title: OptionalStringSchema,
+  original_filename: OptionalStringSchema,
+  stored_filename: OptionalStringSchema,
+  relative_file_path: OptionalStringSchema,
+  relative_thumbnail_path: OptionalStringSchema,
+  mime_type: OptionalStringSchema,
+  size_bytes: z.number().int().nonnegative().nullable(),
+  description: OptionalStringSchema,
+  created_at: DateTimeSchema,
+  updated_at: OptionalStringSchema,
+  file_metadata: z.record(z.string(), z.any()).nullable(),
+  image_url: z.string(),
+  thumbnail_url: OptionalStringSchema,
+  // 简化：不包含tags和exif_info避免更深层的循环引用
+  tags: z.array(z.object({
+    id: UuidSchema,
+    name: z.string(),
+    created_at: DateTimeSchema,
+    updated_at: DateTimeSchema,
+  })).optional(),
+  exif_info: z.record(z.string(), z.any()).nullable(),
+});
+
+// 带图片的分类读取 Schema
 export const CategoryReadWithImagesSchema = CategoryReadSchema.extend({
-  images: z.lazy(() => {
-    // 动态导入 ImageReadSchema 避免循环引用
-    const { ImageReadSchema } = require('./image');
-    return z.array(ImageReadSchema);
-  }).optional(),
+  images: z.array(ImageForCategorySchema).optional(),
 });
 
 // 分类列表响应 Schema
