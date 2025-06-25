@@ -1,3 +1,18 @@
+/**
+ * API 服务层 - 图片管理相关的 PUT 请求修复
+ * 
+ * 修复前的问题：
+ * - 发送不必要的 null 值字段（如 category_id: null）
+ * - 可能导致后端误解更新意图
+ * - 请求体包含过多无用信息
+ * 
+ * 修复后的改进：
+ * - 只发送需要更新的字段
+ * - 使用 undefined 表示不更新的字段
+ * - 过滤掉不必要的 null 值
+ * - 提供更清晰的 API 调用语义
+ */
+
 import axios, { AxiosError } from 'axios';
 import { API_BASE_URL } from '../constants';
 import type {
@@ -263,13 +278,50 @@ export async function getImage(imageId: string): Promise<ImageRead> {
   }
 }
 
+/**
+ * 构建图片更新请求数据，只包含需要更新的字段
+ * @param imageData 部分图片更新数据
+ * @returns 清理后的更新数据
+ */
+function buildImageUpdatePayload(imageData: Partial<ImageUpdate>): Record<string, any> {
+  const payload: Record<string, any> = {};
+  
+  // 只有当字段不是 undefined 时才包含在请求中
+  if (imageData.title !== undefined) {
+    payload.title = imageData.title;
+  }
+  if (imageData.description !== undefined) {
+    payload.description = imageData.description;
+  }
+  if (imageData.tags !== undefined) {
+    payload.tags = imageData.tags;
+  }
+  if (imageData.category_id !== undefined) {
+    payload.category_id = imageData.category_id;
+  }
+  if (imageData.set_as_category_thumbnail !== undefined) {
+    payload.set_as_category_thumbnail = imageData.set_as_category_thumbnail;
+  }
+  
+  return payload;
+}
+
 export async function updateImageMetadata(
   imageId: string,
-  imageData: ImageUpdate
+  imageData: Partial<ImageUpdate>
 ): Promise<ImageRead> {
   const url = `/api/images/${imageId}/`;
+  
+  // 构建清理后的请求数据
+  const cleanedImageData = buildImageUpdatePayload(imageData);
+  
+  // 验证是否有实际需要更新的数据
+  if (Object.keys(cleanedImageData).length === 0) {
+    throw new Error('没有提供需要更新的字段');
+  }
+  
   try {
-    const response = await apiClient.put(url, imageData);
+    const response = await apiClient.put(url, cleanedImageData);
     return safeParseApiResponse(response.data, ImageReadSchema, '更新图片元数据响应数据格式错误');
   } catch (error) {
     throw formatApiErrorWithZod(error, url);

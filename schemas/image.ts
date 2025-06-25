@@ -55,14 +55,14 @@ export const ImageReadSchema = z.object({
   thumbnail_url: OptionalStringSchema,
 });
 
-// 图片更新 Schema
+// 图片更新 Schema - 所有字段都是可选的，支持部分更新
 export const ImageUpdateSchema = z.object({
   title: OptionalStringSchema,
   description: OptionalStringSchema,
   tags: OptionalStringSchema, // 逗号分隔的字符串
-  category_id: UuidSchema.nullable(),
-  set_as_category_thumbnail: z.boolean().nullable(),
-});
+  category_id: UuidSchema.nullable().optional(), // 可选字段，可以不传
+  set_as_category_thumbnail: z.boolean().nullable().optional(), // 可选字段，可以不传
+}).partial(); // 使所有字段都变为可选，支持部分更新
 
 // 图片上传 Schema (用于表单验证)
 export const BodyUploadImageSchema = z.object({

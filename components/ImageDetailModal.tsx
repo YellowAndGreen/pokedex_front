@@ -294,13 +294,31 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
     setIsLoading(true);
     setError(null);
     try {
-      const updatedData: ImageUpdate = {
-        category_id: null,
-        title: title || null,
-        description: description || null,
-        tags: tagsStringForInput.trim() ? tagsStringForInput.trim() : null,
-        set_as_category_thumbnail: null,
-      };
+      // 只发送需要更新的字段，使用 undefined 表示不更新
+      const updatedData: Partial<ImageUpdate> = {};
+      
+      // 只有当字段实际发生变化时才包含在请求中
+      if (title !== image.title) {
+        updatedData.title = title || null; // 空字符串转为 null 表示清空
+      }
+      if (description !== image.description) {
+        updatedData.description = description || null; // 空字符串转为 null 表示清空
+      }
+      
+      // 处理标签更新
+      const currentTags = image.tags?.map(tag => tag.name).join(', ') || '';
+      const newTags = tagsStringForInput.trim();
+      if (newTags !== currentTags) {
+        updatedData.tags = newTags || null; // 空字符串转为 null 表示清空
+      }
+      
+      // 检查是否有实际更新的字段
+      if (Object.keys(updatedData).length === 0) {
+        setIsEditing(false);
+        setToastState({ message: 'No changes to update.', type: 'success' });
+        return;
+      }
+      
       const updatedImage = await updateImageMetadata(image.id, updatedData);
       onUpdate(updatedImage);
       setIsEditing(false);
@@ -320,11 +338,8 @@ const ImageDetailModal: React.FC<ImageDetailModalProps> = ({
     setIsLoading(true);
     setError(null);
     try {
+      // 只发送需要更新的字段：设置为缩略图
       await updateImageMetadata(image.id, { 
-        category_id: null,
-        title: null,
-        description: null,
-        tags: null,
         set_as_category_thumbnail: true 
       });
       setToastState({ message: 'Set as category thumbnail!', type: 'success' });
