@@ -14,11 +14,24 @@
   <!-- Standard PWA Meta Tag -->
   <meta name="mobile-web-app-capable" content="yes">
   
-  <!-- Apple PWA Meta Tags (kept for older iOS compatibility) -->
+  <!-- Apple PWA Meta Tags - 针对iOS优化 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Pokedex IM">
-  <link rel="apple-touch-icon" href="/icons/icon-144x144.png">
+  <meta name="apple-touch-fullscreen" content="yes">
+  
+  <!-- Apple Touch Icons - 多尺寸支持 -->
+  <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
+  
+  <!-- Apple启动画面配置 -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-startup-image" href="/icons/icon-512x512.png">
+  
+  <!-- iOS Safari特定优化 -->
+  <meta name="format-detection" content="telephone=no">
+  <meta name="msapplication-tap-highlight" content="no">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>

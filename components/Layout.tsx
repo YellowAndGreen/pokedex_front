@@ -14,6 +14,23 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+// iOS设备检测函数
+const isIOS = (): boolean => {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
+// 检测是否在Safari中
+const isSafari = (): boolean => {
+  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+};
+
+// 检测是否已经安装为PWA
+const isPWAInstalled = (): boolean => {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         (window.navigator as any).standalone === true;
+};
+
 const ThemeSwitcher: React.FC = () => {
   const { themeName, setThemeName, theme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
@@ -21,6 +38,7 @@ const ThemeSwitcher: React.FC = () => {
 
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [canInstallPWA, setCanInstallPWA] = useState(false);
+  const [showIOSInstallPrompt, setShowIOSInstallPrompt] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -33,16 +51,23 @@ const ThemeSwitcher: React.FC = () => {
       console.log('PWA install prompt available');
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    // 检查当前环境
+    const isIOSDevice = isIOS();
+    const isInSafari = isSafari();
+    const isAlreadyInstalled = isPWAInstalled();
 
-    // Check if the app is already installed (displayMode could be standalone, fullscreen, minimal-ui)
-    if (
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true
-    ) {
-      // For Safari
-      setCanInstallPWA(false); // Already installed
+    if (isAlreadyInstalled) {
       console.log('PWA already installed or in standalone mode.');
+      setCanInstallPWA(false);
+      setShowIOSInstallPrompt(false);
+    } else if (isIOSDevice && isInSafari) {
+      // iOS Safari - 显示手动安装提示
+      setShowIOSInstallPrompt(true);
+      setCanInstallPWA(false);
+      console.log('iOS Safari detected - showing manual install prompt');
+    } else if (!isIOSDevice) {
+      // 非iOS设备 - 监听beforeinstallprompt事件
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     }
 
     return () => {
@@ -63,6 +88,12 @@ const ThemeSwitcher: React.FC = () => {
     setDeferredPrompt(null);
     setCanInstallPWA(false);
     setIsOpen(false); // Close dropdown after action
+  };
+
+  const handleIOSInstallClick = () => {
+    // 显示iOS安装说明的模态框或提示
+    alert(`要将此应用添加到主屏幕：\n\n1. 点击Safari底部的分享按钮 (📤)\n2. 滚动并选择"添加到主屏幕"\n3. 点击"添加"完成安装`);
+    setIsOpen(false);
   };
 
   const availableThemes = Object.entries(themeSettings).map(([key, value]) => ({
@@ -135,6 +166,19 @@ const ThemeSwitcher: React.FC = () => {
             >
               <InstallIcon className='w-4 h-4 mr-2' filled={false} />
               Install App
+            </button>
+          )}
+          {showIOSInstallPrompt && (
+            <button
+              onClick={handleIOSInstallClick}
+              className={`flex items-center w-full text-left px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm transition-colors duration-150
+                  ${theme.dropdown.itemText} ${theme.dropdown.itemHoverText} ${theme.dropdown.itemHoverBg}
+                  border-b ${theme.input.border} 
+                `}
+              role='menuitem'
+            >
+              <InstallIcon className='w-4 h-4 mr-2' filled={false} />
+              添加到主屏幕
             </button>
           )}
           {availableThemes.map(t => (

@@ -237,16 +237,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
             {config.title}
           </h1>
           
-          <div
-            className="title-line"
-            style={{
-              width: '3rem',
-              height: '2px',
-              background: 'linear-gradient(90deg, transparent, #10B981, transparent)', // RetroTech emerald色调
-              margin: '0 auto',
-              animation: 'lineGrow 1.5s ease-out both'
-            }}
-          />
+
           
           <p
             style={{
@@ -327,10 +318,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
             100% { opacity: 1; transform: translateY(0); }
           }
 
-          @keyframes lineGrow {
-            0% { width: 0; opacity: 0; }
-            100% { width: 3rem; opacity: 1; }
-          }
+
 
           @keyframes subtitleFade {
             0% { opacity: 0; }
