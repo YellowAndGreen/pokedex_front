@@ -104,31 +104,107 @@ const LogoContainer: React.FC<LogoContainerProps> = (props) => {
           role="img"
           aria-label="Pokedex 鸟类图鉴 Logo"
         >
-          {/* 现代化鸟类图标 SVG */}
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke={logoColors.icon}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            {/* 鸟类轮廓 */}
-            <path d="M12 2l3 7h7l-5.5 4 2 7-6.5-5-6.5 5 2-7L2 9h7l3-7z" fill={logoColors.icon} fillOpacity="0.2" />
-            {/* 鸟身体 */}
-            <path d="M5 12c0 0 2-1 7-1s7 1 7 1" />
-            <path d="M12 2c-1 0-2 1-2 2.5S11 7 12 7s2-1.5 2-2.5S13 2 12 2z" fill={logoColors.icon} fillOpacity="0.3" />
-            {/* 翅膀 */}
-            <path d="M7 9c-1.5 0-3 1-3 3s1.5 2 3 2" />
-            <path d="M17 9c1.5 0 3 1 3 3s-1.5 2-3 2" />
-            {/* 鸟眼睛 */}
-            <circle cx="10" cy="6" r="0.5" fill={logoColors.icon} />
-            <circle cx="14" cy="6" r="0.5" fill={logoColors.icon} />
+          {/* 优雅鸟类图标 SVG */}
+                      <svg
+              width="56"
+              height="48"
+              viewBox="10 30 75 25"
+              fill="none"
+              className="elegant-bird"
+              aria-hidden="true"
+            >
             {/* 鸟尾巴 */}
-            <path d="M12 15c0 2-1 4-1 4s1-2 1-4 1-4 1-4-1 2-1 4z" />
+            <path 
+              className="bird-tail" 
+              d="M15 45 Q8 48 10 55 Q12 58 15 55 Q18 52 20 48 Q18 44 15 45" 
+              fill={logoColors.icon} 
+              opacity="0.8"
+            />
+            
+            {/* 鸟身体 */}
+            <ellipse 
+              className="bird-body" 
+              cx="50" 
+              cy="45" 
+              rx="22" 
+              ry="12" 
+              fill={logoColors.icon} 
+              opacity="0.6"
+            />
+            
+            {/* 鸟头部 */}
+            <circle 
+              className="bird-head" 
+              cx="65" 
+              cy="38" 
+              r="10" 
+              fill={logoColors.icon}
+              opacity="0.8"
+            />
+            
+            {/* 鸟嘴 */}
+            <path 
+              className="bird-beak" 
+              d="M73 38 L82 36 L82 40 L73 38" 
+              fill={logoColors.icon}
+              opacity="0.9"
+            />
+            
+            {/* 鸟眼睛 */}
+            <circle 
+              className="bird-eye" 
+              cx="69" 
+              cy="35" 
+              r="2.5" 
+              fill="#ffffff"
+            />
+            <circle 
+              className="bird-pupil" 
+              cx="70" 
+              cy="34" 
+              r="1" 
+              fill="#1f2937"
+            />
+            
+            {/* 左翅膀 */}
+            <g className="wing-left">
+              <path 
+                d="M35 40 Q20 32 15 42 Q18 52 30 50 Q38 48 35 40" 
+                fill={logoColors.icon}
+                opacity="0.7"
+              />
+              <path 
+                className="wing-detail" 
+                d="M32 42 Q22 36 18 44 Q20 48 30 47" 
+                fill={logoColors.icon} 
+                opacity="0.5"
+              />
+            </g>
+            
+            {/* 右翅膀 */}
+            <g className="wing-right">
+              <path 
+                d="M65 40 Q80 32 85 42 Q82 52 70 50 Q62 48 65 40" 
+                fill={logoColors.icon}
+                opacity="0.7"
+              />
+              <path 
+                className="wing-detail" 
+                d="M68 42 Q78 36 82 44 Q80 48 70 47" 
+                fill={logoColors.icon} 
+                opacity="0.5"
+              />
+            </g>
+            
+            {/* 胸部特色羽毛 */}
+            <ellipse 
+              fill={logoColors.icon} 
+              cx="50" 
+              cy="50" 
+              rx="15" 
+              ry="6" 
+              opacity="0.4"
+            />
           </svg>
         </div>
       </div>
@@ -155,11 +231,60 @@ const LogoContainer: React.FC<LogoContainerProps> = (props) => {
               transform: translateY(-8px) scale(1.02); 
             }
           }
+
+          /* 鸟类动画效果 */
+          .elegant-bird .wing-left {
+            transform-origin: 35px 40px;
+            animation: wingFlapLeft 0.8s ease-in-out infinite;
+          }
+
+          .elegant-bird .wing-right {
+            transform-origin: 65px 40px;
+            animation: wingFlapRight 0.8s ease-in-out infinite;
+          }
+
+          .elegant-bird .bird-tail {
+            transform-origin: 15px 45px;
+            animation: tailSway 1.2s ease-in-out infinite;
+          }
+
+          @keyframes wingFlapLeft {
+            0%, 100% {
+              transform: rotate(-5deg) scaleY(1);
+            }
+            50% {
+              transform: rotate(-25deg) scaleY(0.8);
+            }
+          }
+
+          @keyframes wingFlapRight {
+            0%, 100% {
+              transform: rotate(5deg) scaleY(1);
+            }
+            50% {
+              transform: rotate(25deg) scaleY(0.8);
+            }
+          }
+
+          @keyframes tailSway {
+            0%, 100% {
+              transform: rotate(0deg);
+            }
+            25% {
+              transform: rotate(-3deg);
+            }
+            75% {
+              transform: rotate(3deg);
+            }
+          }
           
           /* 减少动画偏好支持 */
           @media (prefers-reduced-motion: reduce) {
             .logo-glow,
-            .logo {
+            .logo,
+            .elegant-bird .wing-left,
+            .elegant-bird .wing-right,
+            .elegant-bird .bird-tail {
               animation: none !important;
             }
           }
