@@ -12,104 +12,44 @@ export default {
     "./*.{js,ts,jsx,tsx}",
   ],
   safelist: [
-    // 所有主题相关的颜色
-    { pattern: /bg-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    { pattern: /text-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|white|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    { pattern: /border-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    { pattern: /from-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    { pattern: /to-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    { pattern: /via-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    // Hover 状态
-    { pattern: /hover:bg-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    { pattern: /hover:text-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|white|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    { pattern: /hover:border-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    // Focus 状态
-    { pattern: /focus:bg-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    { pattern: /focus:text-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|white|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    { pattern: /focus:border-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    { pattern: /focus:ring-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    // 透明度变体
-    { pattern: /bg-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)\/(50|60|70|80|90)/ },
-    { pattern: /hover:bg-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)\/(50|60|70|80|90)/ },
-    // 自定义背景色
-    'bg-[#1A1A2E]', 'bg-[#151515]',
-    // 阴影效果
-    { pattern: /shadow-(sm|md|lg|xl|2xl|inner|none)/ },
-    { pattern: /hover:shadow-(sm|md|lg|xl|2xl|inner|none)/ },
-    // Ring 效果
-    { pattern: /ring-(1|2|4|8)/ },
-    { pattern: /ring-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    { pattern: /focus:ring-(1|2|4|8)/ },
-    { pattern: /focus:ring-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    // placeholder 样式
-    { pattern: /placeholder-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
-    // 焦点可见性
-    'focus-visible:outline-green-600', 'focus-visible:outline-cyan-400', 'focus-visible:outline-red-600',
-    'focus-visible:outline-orange-600', 'focus-visible:outline-emerald-400', 'focus-visible:outline-yellow-400',
-    'focus-visible:outline-lime-400', 'focus-visible:outline-indigo-500', 'focus-visible:outline-pink-500',
-    'focus-visible:outline-slate-500', 'focus-visible:outline-white',
-    // 重要的交互效果
-    'group-hover:scale-105', 'group-hover:scale-103', 'group-hover:-translate-y-1',
-    'group-hover:bg-opacity-20', 'group-hover:bg-opacity-10',
-    'bg-opacity-0', 'bg-opacity-10', 'bg-opacity-20',
-    // 动画相关
-    'animate-fadeIn', 'animate-fadeInUp', 'animate-pulse',
-    'animation-delay', 'animationDelay', 'animation-fill-mode', 'animationFillMode',
-    // 网格和布局
-    'aspect-square', 'object-cover', 'object-contain',
-    'grid-cols-2', 'grid-cols-3', 'grid-cols-4', 'grid-cols-5', 'grid-cols-6',
-    'sm:grid-cols-3', 'sm:grid-cols-4', 'sm:grid-cols-5', 'sm:grid-cols-6',
-    'md:grid-cols-4', 'md:grid-cols-5', 'md:grid-cols-6',
-    'lg:grid-cols-5', 'lg:grid-cols-6', 'lg:grid-cols-7', 'lg:grid-cols-8',
-    // 尺寸和间距
-    'min-h-[150px]', 'min-h-[200px]', 'min-h-[300px]', 'min-h-[400px]',
-    'max-h-[300px]', 'max-h-[400px]', 'h-48', 'h-56', 'h-64',
-    'gap-2', 'gap-3', 'gap-4', 'sm:gap-3', 'sm:gap-4', 'md:gap-4',
-    // 位置和变换
-    'inset-0', 'absolute', 'relative', 'translate-y-0', '-translate-y-1',
-    // Masonry 相关样式
-    'my-masonry-grid', 'my-masonry-grid_column',
+    // 所有主题的 brandColor 类（确保动态主题样式正确生成）
+    'text-emerald-400', 'text-blue-500', 'text-green-500', 'text-cyan-400', 
+    'text-red-500', 'text-yellow-400', 'text-lime-400', 'text-indigo-500', 
+    'text-pink-500', 'text-slate-500', 'text-white',
+    // 所有主题的 hover 变体
+    'hover:text-emerald-400', 'hover:text-blue-500', 'hover:text-green-500', 
+    'hover:text-cyan-400', 'hover:text-red-500', 'hover:text-yellow-400', 
+    'hover:text-lime-400', 'hover:text-indigo-500', 'hover:text-pink-500', 
+    'hover:text-slate-500', 'hover:text-white',
     // 透明度
-    'opacity-0', 'opacity-50', 'opacity-60', 'opacity-70', 'opacity-85', 'opacity-100',
-    'hover:opacity-85', 'hover:opacity-90', 'hover:opacity-100',
-    'group-hover:opacity-70', 'hover:!opacity-100',
+    'opacity-0', 'opacity-50', 'opacity-60', 'opacity-70', 'opacity-80', 'opacity-85', 'opacity-100',
+    'hover:opacity-80', 'hover:opacity-85', 'hover:opacity-90', 'hover:opacity-100',
     // 过渡和动画
+    'transition-opacity', 'transition-colors', 'transition-all', 'transition-transform',
     'duration-200', 'duration-300', 'duration-500',
-    'ease-in-out', 'ease-out', 'ease-linear',
-    'transition-transform', 'transition-colors', 'transition-all',
-    // 边框和圆角
-    'rounded', 'rounded-lg', 'rounded-xl', 'rounded-full',
-    'border-2', 'border-black', 'border-white',
     // 字体和文本
     'font-medium', 'font-semibold', 'font-bold',
     'text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl', 'text-2xl',
-    'truncate', 'whitespace-nowrap', 'select-none',
-    // 更多颜色变体
-    'accent-blue-600', 'accent-green-600', 'accent-cyan-500', 'accent-red-500', 'accent-emerald-500',
-    // 自定义CSS类
-    'scrollbar-thin', 'modal-transition',
-    'shimmer-gradient', 'shimmer-gradient-galaxy', 'shimmer-gradient-arcade',
-    'echarts-tooltip',
-    // 滚动条相关
-    'overflow-x-hidden', 'overflow-y-auto', 'scrollbar-thin::-webkit-scrollbar',
-    // 更多动态值
-    'max-h-[80vh]', 'max-h-[75vh]', 'max-h-[70vh]', 'min-h-[calc(100vh-10rem)]',
-    'w-20', 'w-24', 'h-2.5', 'w-6', 'p-2.5', 'sm:p-3',
-    // 更多 group hover 效果
-    'group/imagecontainer', 'group-hover/imagecontainer:opacity-70',
-    // 更多布局和间距
-    'mt-auto', 'pt-4', 'pb-4', 'py-10', 'px-6', 'py-3',
-    // 更多变换和位置
-    'top-full', 'left-1', 'right-1', 'sm:left-2', 'sm:right-2',
-    'active:scale-95', 'scale-95', 'scale-100',
-    // 更多文本和字体
-    'leading-relaxed', 'leading-normal', 'line-height-1.8',
-    // 更多背景和边框
-    'backdrop-blur-sm', 'bg-black/20', 'bg-white/90',
-    // 更多媒体查询
-    'sm:w-24', 'sm:h-12', 'md:w-1/3', 'md:w-1/2', 'lg:w-1/4',
-    // 更多flex和grid
-    'flex-shrink-0', 'flex-grow', 'justify-items-center', 'items-start',
+    'sm:text-xs', 'sm:text-sm', 'sm:text-base', 'sm:text-lg', 'sm:text-xl', 'sm:text-2xl',
+    // 布局
+    'flex-shrink-0', 'flex-grow',
+    // 所有主题相关的颜色模式（基础颜色）
+    { pattern: /bg-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
+    { pattern: /text-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|white|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
+    { pattern: /border-(slate|blue|green|lime|indigo|cyan|pink|yellow|red|orange|gray|emerald|zinc|neutral)-(50|100|200|300|400|500|600|700|800|900)/ },
+    // 明确列出项目中使用的 hover 状态（避免正则表达式警告）
+    'hover:bg-blue-600', 'hover:bg-blue-700', 'hover:bg-slate-300', 'hover:bg-slate-600', 'hover:bg-slate-700',
+    'hover:bg-red-600', 'hover:bg-red-700', 'hover:bg-red-800', 'hover:bg-green-600', 'hover:bg-green-700',
+    'hover:bg-lime-300', 'hover:bg-orange-600', 'hover:bg-orange-700', 'hover:bg-cyan-400', 'hover:bg-cyan-500',
+    'hover:bg-indigo-600', 'hover:bg-indigo-700', 'hover:bg-pink-500', 'hover:bg-pink-600', 'hover:bg-yellow-500',
+    'hover:bg-yellow-600', 'hover:bg-emerald-500', 'hover:bg-emerald-600', 'hover:bg-gray-600', 'hover:bg-gray-800',
+    'hover:bg-purple-600', 'hover:bg-black/60', 'hover:bg-black/70', 'hover:bg-white/10',
+    // hover text 状态
+    'hover:text-blue-400', 'hover:text-blue-600', 'hover:text-green-800', 'hover:text-green-900',
+    'hover:text-lime-50', 'hover:text-lime-100', 'hover:text-cyan-200', 'hover:text-cyan-300', 'hover:text-cyan-400',
+    'hover:text-red-400', 'hover:text-red-500', 'hover:text-emerald-400', 'hover:text-white', 'hover:text-black',
+    // 自定义背景色
+    'bg-[#1A1A2E]', 'bg-[#151515]',
   ],
   darkMode: 'class',
   theme: {
