@@ -1,127 +1,101 @@
 import React, { useEffect, useRef } from 'react';
+import { initChart, setChartOption, addResponsiveSupport, disposeChart, createBaseChartOption, getThemeColors } from '../services/echarts';
+import type { ECharts } from '../services/echarts';
 import { useTheme } from '../contexts/ThemeContext';
 
-// Make echarts available globally, assuming it's loaded from CDN
-declare var echarts: any;
-
-interface PieChartDataItem {
+interface PieChartData {
   name: string;
   value: number;
 }
 
 interface PieChartProps {
-  data: PieChartDataItem[];
-  colors: string[];
+  data: PieChartData[];
+  title?: string;
+  className?: string;
+  colors?: string[]; // 支持外部传入的颜色配置
 }
 
-const PieChart: React.FC<PieChartProps> = ({ data, colors }) => {
+const PieChart: React.FC<PieChartProps> = ({ data, title = '数据分布', className = '', colors: externalColors }) => {
   const chartRef = useRef<HTMLDivElement>(null);
-  const chartInstanceRef = useRef<any>(null);
-  const { theme, isDarkMode } = useTheme();
+  const chartInstanceRef = useRef<ECharts | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
+  const { themeName, isDarkMode } = useTheme();
 
   useEffect(() => {
-    if (chartRef.current && typeof echarts !== 'undefined' && data.length > 0) {
-      chartInstanceRef.current = echarts.init(chartRef.current, isDarkMode ? 'dark' : null);
+    if (!chartRef.current) return;
 
-      const option = {
-        title: {
-          text: '鸟种记录次数分布 (玫瑰图)',
-          left: 'center',
-          top: 10, // Reduced top margin
-          textStyle: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: theme.card.text,
-          },
-        },
-        tooltip: {
-          trigger: 'item',
-          formatter: '{a} <br/>{b}: {c} ({d}%)',
-        },
-        legend: {
-          top: 'bottom',
-          data: data.map(item => item.name),
-          textStyle: {
-            color: theme.card.secondaryText,
-            fontSize: 11,
-          },
-          padding: [10, 5, 5, 5], // Reduced top padding
-          itemGap: 8,
-        },
-        toolbox: {
-          // Toolbox is now hidden
-          show: false,
-        },
-        series: [
-          {
-            name: '记录次数',
-            type: 'pie',
-            radius: ['20%', '75%'], // Increased radius
-            center: ['50%', '45%'], // Adjusted center for better vertical space utilization
-            roseType: 'area',
+    // 初始化图表
+    const chart = initChart(chartRef.current, undefined, 'pie-chart');
+    chartInstanceRef.current = chart;
+
+    // 添加响应式支持
+    cleanupRef.current = addResponsiveSupport(chart);
+
+    // 配置图表选项
+    const themeColors = getThemeColors(themeName, isDarkMode);
+    const baseOption = createBaseChartOption(themeName, isDarkMode);
+    
+    // 使用外部传入的颜色或主题颜色
+    const chartColors = externalColors || themeColors.series;
+
+    const option = {
+      ...baseOption,
+      color: chartColors, // 设置图表颜色
+      title: {
+        text: title,
+        left: 'center',
+        textStyle: {
+          color: themeColors.text,
+          fontSize: 16,
+          fontWeight: 'bold'
+        }
+      },
+      tooltip: {
+        ...baseOption.tooltip,
+        trigger: 'item',
+        formatter: '{a} <br/>{b}: {c} ({d}%)'
+      },
+      legend: {
+        orient: 'vertical',
+        left: 'left',
+        textStyle: {
+          color: themeColors.text
+        }
+      },
+      series: [
+        {
+          name: title,
+          type: 'pie',
+          radius: '50%',
+          data: data,
+          emphasis: {
             itemStyle: {
-              borderRadius: 8,
-              borderColor: theme.card.bg,
-              borderWidth: 0,
-            },
-            data: data,
-            label: {
-              show: false,
-            },
-            labelLine: {
-              show: false,
-            },
-            emphasis: {
-              itemStyle: {
-                shadowBlur: 10,
-                shadowOffsetX: 0,
-                shadowColor: 'rgba(0, 0, 0, 0.3)',
-              },
-            },
-            color: colors,
-          },
-        ],
-      };
-
-      chartInstanceRef.current.setOption(option);
-    } else if (chartInstanceRef.current && data.length === 0) {
-      chartInstanceRef.current.clear();
-    }
-
-    const resizeHandler = () => {
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.resize();
-      }
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 0, 0, 0.5)'
+            }
+          }
+        }
+      ]
     };
 
-    window.addEventListener('resize', resizeHandler);
+    setChartOption(chart, option);
 
     return () => {
-      window.removeEventListener('resize', resizeHandler);
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.dispose();
-        chartInstanceRef.current = null;
+      // 清理响应式监听器
+      if (cleanupRef.current) {
+        cleanupRef.current();
       }
+      // 销毁图表实例
+      disposeChart('pie-chart');
+      chartInstanceRef.current = null;
     };
-  }, [data, colors, theme, isDarkMode]);
-
-  if (data.length === 0) {
-    return (
-      <div
-        className={`w-full h-full flex items-center justify-center ${theme.card.secondaryText}`}
-        style={{ minHeight: '200px' }}
-      >
-        No data to display for the pie chart.
-      </div>
-    );
-  }
+  }, [data, title, themeName, isDarkMode, externalColors]);
 
   return (
-    <div
-      ref={chartRef}
-      style={{ width: '100%', height: '100%' }}
-      aria-label='Top 10 bird species rose pie chart'
-    ></div>
+    <div className={`w-full h-80 ${className}`}>
+      <div ref={chartRef} className="w-full h-full" />
+    </div>
   );
 };
 

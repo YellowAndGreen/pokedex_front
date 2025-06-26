@@ -56,31 +56,7 @@ if (workbox) {
 
   /***************** 缓存策略区域 *****************/
   
-  // 缓存 Google Fonts 的 CSS 文件 (StaleWhileRevalidate: 优先使用缓存，同时后台更新)
-  workbox.routing.registerRoute(
-    ({ url }) => url.origin === 'https://fonts.googleapis.com',
-    new workbox.strategies.StaleWhileRevalidate({
-      cacheName: 'google-fonts-stylesheets',
-    })
-  );
-
-  // 缓存 Google Fonts 的字体文件 (woff2)
-  // **修复**: 将 CacheFirst 改为 StaleWhileRevalidate，避免首次离线时因缓存未命中而报错
-  workbox.routing.registerRoute(
-    ({ url }) => url.origin === 'https://fonts.gstatic.com',
-    new workbox.strategies.StaleWhileRevalidate({ // <--- 关键修改
-      cacheName: 'google-fonts-webfonts',
-      plugins: [
-        new workbox.cacheableResponse.CacheableResponsePlugin({
-          statuses: [0, 200],
-        }),
-        new workbox.expiration.ExpirationPlugin({
-          maxAgeSeconds: 60 * 60 * 24 * 365, // 缓存一年
-          maxEntries: 30,
-        }),
-      ],
-    })
-  );
+  // Google Fonts 已迁移到本地，无需缓存CDN字体
 
   // 缓存来自 CDN 的 ECharts 脚本
   workbox.routing.registerRoute(

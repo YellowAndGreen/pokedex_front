@@ -1,17 +1,12 @@
 import React, { useEffect, useRef } from 'react';
+import { initChart, setChartOption, addResponsiveSupport, disposeChart, createBaseChartOption, getThemeColors } from '../services/echarts';
+import type { ECharts } from '../services/echarts';
 import { useTheme } from '../contexts/ThemeContext';
 
-declare var echarts: any;
-
-interface RegionTooltipData {
-  species: number;
-  reports: number;
-}
-
-export interface RegionBirdData {
+interface RegionData {
   name: string;
   value: number;
-  tooltipData: RegionTooltipData;
+  species: string[];
 }
 
 interface MapThemeConfig {
@@ -26,170 +21,115 @@ interface MapThemeConfig {
 }
 
 interface ChinaBirdMapProps {
-  data: RegionBirdData[];
-  themeConfig: MapThemeConfig; // Added themeConfig prop
+  data: RegionData[];
+  className?: string;
+  themeConfig?: MapThemeConfig; // 支持外部传入的主题配置
 }
 
-const ChinaBirdMap: React.FC<ChinaBirdMapProps> = ({ data, themeConfig }) => {
+const ChinaBirdMap: React.FC<ChinaBirdMapProps> = ({ data, className = '', themeConfig }) => {
   const chartRef = useRef<HTMLDivElement>(null);
-  const chartInstanceRef = useRef<any>(null);
-  const { isDarkMode } = useTheme(); // isDarkMode is still useful for general dark mode checks in ECharts
+  const chartInstanceRef = useRef<ECharts | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
+  const { themeName, isDarkMode } = useTheme();
 
   useEffect(() => {
-    if (chartRef.current && typeof echarts !== 'undefined') {
-      chartInstanceRef.current = echarts.init(chartRef.current, isDarkMode ? 'dark' : null);
+    if (!chartRef.current || !data || data.length === 0) return;
 
-      const seriesData = data.map(item => ({
-        name: item.name,
-        value: item.value,
-        tooltipData: item.tooltipData,
-      }));
+    // 初始化图表
+    const chart = initChart(chartRef.current, undefined, 'china-bird-map');
+    chartInstanceRef.current = chart;
 
-      const values = seriesData
-        .map(item => item.value)
-        .filter(v => v !== undefined && v !== null && !isNaN(v));
-      let minValue = values.length > 0 ? Math.min(...values) : 0;
-      let maxValue = values.length > 0 ? Math.max(...values) : 10;
+    // 添加响应式支持
+    cleanupRef.current = addResponsiveSupport(chart);
 
-      if (minValue === maxValue && values.length > 0) {
-        minValue = Math.max(0, minValue - 5);
-        maxValue = maxValue + 5;
-      } else if (minValue === 0 && maxValue === 0 && values.length > 0) {
-        maxValue = 10;
-      }
+    // 配置图表选项
+    const themeColors = getThemeColors(themeName, isDarkMode);
+    const baseOption = createBaseChartOption(themeName, isDarkMode);
+    
+    // 使用外部传入的主题配置或默认主题配置
+    const mapColors = themeConfig?.visualMapColors || themeColors.mapColors || themeColors.series.slice(0, 3);
 
-      if (minValue >= maxValue) {
-        maxValue = minValue + 10;
-      }
-
-      const option = {
-        tooltip: {
-          trigger: 'item',
-          confine: true,
-          transitionDuration: 0.4,
-          formatter: (params: any) => {
-            if (params.data && params.data.tooltipData) {
-              return (
-                `<strong style="color: ${themeConfig.tooltipTitleColor};">${params.name}</strong><br/>` +
-                `观测鸟种: <span style="font-weight:bold; color: ${themeConfig.tooltipValueColor}">${params.data.tooltipData.species}</span><br/>` +
-                `记录总数: <span style="font-weight:bold; color: ${themeConfig.tooltipValueColor}">${params.data.tooltipData.reports}</span>`
-              );
-            }
-            return `<strong>${params.name}</strong><br/>暂无详细数据`;
-          },
+    const option = {
+      ...baseOption,
+      title: {
+        text: '中国鸟类分布图',
+        left: 'center',
+        textStyle: {
+          color: themeColors.text,
+          fontSize: 18,
+          fontWeight: 'bold'
+        }
+      },
+      tooltip: {
+        ...baseOption.tooltip,
+        trigger: 'item',
+        formatter: (params: any) => {
+          const data = params.data;
+          if (!data) return '';
+          return `
+            <div>
+              <strong>${data.name}</strong><br/>
+              观察记录: ${data.value}次<br/>
+              物种数量: ${data.species?.length || 0}种
+            </div>
+          `;
+        }
+      },
+      visualMap: {
+        min: 0,
+        max: Math.max(...data.map(d => d.value)),
+        left: 'left',
+        top: 'bottom',
+        text: ['高', '低'],
+        textStyle: {
+          color: themeColors.text
         },
-        visualMap: {
-          min: minValue,
-          max: maxValue,
-          left: '5%',
-          bottom: '5%',
-          text: ['高', '低'],
-          calculable: true,
-          orient: 'vertical',
-          itemWidth: 20,
-          itemHeight: 140,
-          align: 'left',
-          textGap: 25,
-          inRange: { color: themeConfig.visualMapColors },
-          textStyle: {
-            color: isDarkMode ? '#ccc' : '#4a5568',
-            fontSize: 13,
-            fontWeight: '500',
-          },
-          handleStyle: {
-            color: themeConfig.visualMapHandleColor,
-            borderColor: isDarkMode ? '#4A5563' : '#DFE6EE',
-            borderWidth: 1,
-            shadowBlur: 3,
-            shadowColor: 'rgba(120,120,120,0.3)',
-          },
-          indicatorStyle: { shadowBlur: 0 },
-        },
-        geo: {
+        inRange: {
+          color: mapColors
+        }
+      },
+      series: [
+        {
+          name: '鸟类观察',
+          type: 'map',
           map: 'china',
           roam: true,
-          zoom: 1.2,
-          label: {
-            show: true,
-            color: isDarkMode ? '#9CA3AF' : '#5a6878',
-            fontSize: 10,
-            fontWeight: '400',
-          },
           emphasis: {
             label: {
               show: true,
-              color: isDarkMode ? '#E5E7EB' : '#374151',
-              fontWeight: 'bold',
+              color: themeColors.text
             },
             itemStyle: {
-              areaColor: themeConfig.geoEmphasisAreaColor,
-              borderColor: themeConfig.geoEmphasisBorderColor,
-              borderWidth: 1.2,
-              shadowColor: 'rgba(100, 100, 100, 0.4)',
-              shadowBlur: 12,
-            },
+              areaColor: themeConfig?.geoEmphasisAreaColor || themeColors.primary,
+              borderColor: themeConfig?.geoEmphasisBorderColor || themeColors.text
+            }
           },
-          itemStyle: {
-            areaColor: themeConfig.geoItemAreaColor,
-            borderColor: themeConfig.geoItemBorderColor,
-            borderWidth: 0.7,
-            shadowColor: 'rgba(150, 160, 180, 0.1)',
-            shadowBlur: 4,
-            shadowOffsetX: 1,
-            shadowOffsetY: 1,
-          },
-          select: {
-            label: { color: isDarkMode ? '#E5E7EB' : '#374151', fontWeight: 'bold' },
-            itemStyle: {
-              areaColor: themeConfig.geoEmphasisAreaColor,
-              borderColor: themeConfig.geoEmphasisBorderColor,
-            },
-          },
-          stateAnimation: {
-            duration: 300,
-            easing: 'cubicOut',
-          },
-        },
-        series: [
-          {
-            name: '观鸟数据',
-            type: 'map',
-            geoIndex: 0,
-            data: seriesData,
-            progressive: 1000,
-            progressiveThreshold: 2000,
-            animationDurationUpdate: 500,
-            animationEasingUpdate: 'quinticInOut',
-          },
-        ],
-      };
-
-      chartInstanceRef.current.setOption(option);
-    }
-
-    const resizeHandler = () => {
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.resize();
-      }
+          data: data.map(item => ({
+            name: item.name,
+            value: item.value,
+            species: item.species
+          }))
+        }
+      ]
     };
 
-    window.addEventListener('resize', resizeHandler);
+    setChartOption(chart, option);
 
     return () => {
-      window.removeEventListener('resize', resizeHandler);
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.dispose();
-        chartInstanceRef.current = null;
+      // 清理响应式监听器
+      if (cleanupRef.current) {
+        cleanupRef.current();
       }
-    };
-  }, [data, themeConfig, isDarkMode]);
+      // 销毁图表实例
+      disposeChart('china-bird-map');
+             chartInstanceRef.current = null;
+     };
+   }, [data, themeName, isDarkMode, themeConfig]);
 
   return (
-    <div
-      ref={chartRef}
-      style={{ width: '100%', height: '100%' }}
-      aria-label='China map showing bird sighting data by region'
-    ></div>
+    <div className={`w-full h-96 ${className}`}>
+      <div ref={chartRef} className="w-full h-full" />
+    </div>
   );
 };
 

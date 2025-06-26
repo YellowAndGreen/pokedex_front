@@ -1,3 +1,6 @@
+/* 导入本地字体文件 */
+@import './assets/fonts/fonts.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

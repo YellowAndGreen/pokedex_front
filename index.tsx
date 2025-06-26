@@ -6,28 +6,10 @@ import { ThemeProvider } from './contexts/ThemeContext';
 
 // 性能优化：预加载关键资源
 const preloadCriticalResources = () => {
-  // 预加载字体
-  const fontLink = document.createElement('link');
-  fontLink.rel = 'preload';
-  fontLink.href = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;500;700&display=swap';
-  fontLink.as = 'style';
-  fontLink.crossOrigin = 'anonymous';
-  document.head.appendChild(fontLink);
-
-  // 预加载关键图标
-  const iconPreloads = [
-    '/icons/icon-144x144.png',
-    '/icons/icon-192x192.png',
-    '/icons/icon-512x512.png'
-  ];
+  // 字体已通过本地CSS文件加载，无需预加载
   
-  iconPreloads.forEach(iconPath => {
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.href = iconPath;
-    link.as = 'image';
-    document.head.appendChild(link);
-  });
+  // 预加载关键图标（仅在实际需要时预加载）
+  // 移除不必要的图标预加载以减少警告
 };
 
 // 初始化性能监控
