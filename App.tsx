@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { StagewiseToolbar } from '@stagewise/toolbar-react';
+import { ReactPlugin } from '@stagewise-plugins/react';
 import Layout from './components/Layout';
 import CategoryList from './components/CategoryList';
 import CategoryDetail from './components/CategoryDetail';
@@ -13,73 +15,83 @@ import useSplashAnimation, { SplashAnimationPhase } from './hooks/useSplashAnima
 
 const App: React.FC = () => {
   const [isAppReady, setIsAppReady] = useState(false);
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
-  // 配置开屏动画 - 优化后的简化配置
+  // 配置开屏动画
   const splashAnimation = useSplashAnimation({
     duration: 3000,
     showTime: 1000,
     autoHide: true,
-    maxTimeout: 8000,
+    onPhaseChange: (phase) => {
+      console.log('Splash animation phase:', phase);
+    },
+    onProgressChange: (progress) => {
+      // 当进度达到80%时，开始预加载主应用
+      if (progress >= 80 && !initialDataLoaded) {
+        setInitialDataLoaded(true);
+      }
+    },
     onComplete: () => {
+      console.log('Splash animation completed');
       setIsAppReady(true);
     },
     onError: (error) => {
       console.error('Splash animation error:', error);
-      setIsAppReady(true);
-    },
-    onTimeout: () => {
-      console.warn('Splash animation timed out');
+      // 出错时也要显示主应用
       setIsAppReady(true);
     }
   });
 
-  // 简化的极端超时保护
+  // 添加超时保护机制，防止首屏动画卡死
   useEffect(() => {
-    const extremeTimeout = 16000;
-    
+    const maxWaitTime = 10000; // 最多等待10秒
     const timeoutId = setTimeout(() => {
       if (!isAppReady) {
-        console.error('Extreme timeout - forcing app to show');
+        console.warn('Splash animation timeout, forcing app to show');
         setIsAppReady(true);
       }
-    }, extremeTimeout);
+    }, maxWaitTime);
 
     return () => clearTimeout(timeoutId);
-  }, []);
+  }, [isAppReady]);
 
-  // 手动跳过开屏动画的处理函数
-  const handleSkipSplash = useCallback(() => {
-    try {
-      splashAnimation.hide();
-      setIsAppReady(true);
-    } catch (error) {
-      console.error('Error skipping splash:', error);
-      setIsAppReady(true);
-    }
-  }, [splashAnimation]);
-
-  // 添加键盘快捷键跳过动画
+  // 模拟应用初始化和数据预加载
   useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !isAppReady) {
-        handleSkipSplash();
+    const initializeApp = async () => {
+      try {
+        // 模拟关键数据的预加载
+        await Promise.all([
+          // 模拟API调用
+          new Promise(resolve => setTimeout(resolve, 500)),
+          // 模拟资源加载
+          new Promise(resolve => setTimeout(resolve, 300)),
+        ]);
+        
+        console.log('App initialization completed');
+      } catch (error) {
+        console.error('App initialization error:', error);
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isAppReady, handleSkipSplash]);
+    if (initialDataLoaded) {
+      initializeApp();
+    }
+  }, [initialDataLoaded]);
 
-  // 简化渲染逻辑：仅基于 isAppReady 判断
-  if (!isAppReady) {
+  // 手动跳过开屏动画的处理函数
+  const handleSkipSplash = useCallback(() => {
+    splashAnimation.hide();
+    setIsAppReady(true);
+  }, [splashAnimation]);
+
+  // 如果开屏动画还在显示，渲染开屏动画
+  if (!splashAnimation.isHidden && !isAppReady) {
     return (
       <SplashScreen
         onAnimationComplete={handleSkipSplash}
-        progress={splashAnimation.progress}
-        phase={splashAnimation.phase}
         config={{
           title: 'Pokedex',
-          description: '正在加载应用...',
+          description: '',
           duration: splashAnimation.config.duration,
           showTime: splashAnimation.config.showTime
         }}
@@ -89,23 +101,32 @@ const App: React.FC = () => {
 
   // 主应用渲染
   return (
-    <HashRouter>
-      <AuthProvider>
-        <CategoryProvider>
-          <Layout>
-            <Routes>
-              <Route path='/' element={<CategoryList />} />
-              <Route path='/categories' element={<Navigate to='/' replace />} />
-              <Route path='/categories/:categoryId' element={<CategoryDetail />} />
-              <Route path='/tags/:tagName' element={<TagPage />} />
-              <Route path='/species' element={<AnalyticsPage />} />
-              <Route path='/login' element={<LoginPage />} />
-              <Route path='*' element={<Navigate to='/' replace />} />
-            </Routes>
-          </Layout>
-        </CategoryProvider>
-      </AuthProvider>
-    </HashRouter>
+    <>
+      {/* Stagewise Toolbar - 仅在开发环境中显示 */}
+      <StagewiseToolbar 
+        config={{
+          plugins: [ReactPlugin]
+        }}
+      />
+      
+      <HashRouter>
+        <AuthProvider>
+          <CategoryProvider>
+            <Layout>
+              <Routes>
+                <Route path='/' element={<CategoryList />} />
+                <Route path='/categories' element={<Navigate to='/' replace />} />
+                <Route path='/categories/:categoryId' element={<CategoryDetail />} />
+                <Route path='/tags/:tagName' element={<TagPage />} />
+                <Route path='/species' element={<AnalyticsPage />} />
+                <Route path='/login' element={<LoginPage />} />
+                <Route path='*' element={<Navigate to='/' replace />} />
+              </Routes>
+            </Layout>
+          </CategoryProvider>
+        </AuthProvider>
+      </HashRouter>
+    </>
   );
 };
 
