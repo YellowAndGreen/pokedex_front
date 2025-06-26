@@ -80,7 +80,6 @@ const registerChinaMap = async (): Promise<void> => {
       // 注册地图
       echarts.registerMap('china', chinaGeoJson);
       isMapRegistered = true;
-      console.log('中国地图数据加载成功，省份名称已转换为简化版本');
     } catch (error) {
       console.error('加载中国地图数据失败:', error);
       // 如果加载失败，使用简化版本作为备份
