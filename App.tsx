@@ -9,6 +9,7 @@ import AnalyticsPage from './components/AnalyticsPage';
 import LoginPage from './components/LoginPage';
 import TagPage from './components/TagPage';
 import SplashScreen from './components/SplashScreen';
+
 import { CategoryProvider } from './contexts/CategoryContext';
 import { AuthProvider } from './contexts/AuthContext';
 import useSplashAnimation, { SplashAnimationPhase } from './hooks/useSplashAnimation';
@@ -127,6 +128,8 @@ const App: React.FC = () => {
             </Layout>
           </CategoryProvider>
         </AuthProvider>
+        
+
       </HashRouter>
     </>
   );
