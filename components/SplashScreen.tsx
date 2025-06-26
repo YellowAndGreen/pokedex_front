@@ -268,11 +268,12 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
             <div
               className="progress-fill"
               style={{
-                width: `${progress}%`,
+                width: `${Math.min(Math.max(progress, 0), 100)}%`,
                 height: '100%',
                 background: 'linear-gradient(90deg, transparent, #10B981, #2EE59D, #10B981, transparent)', // RetroTech emerald渐变
                 transition: 'width 0.1s ease-out',
-                animation: phase === 'loading' ? 'progressMove 2s ease-in-out infinite' : 'none'
+                animation: phase === 'loading' && progress < 100 ? 'progressMove 2s ease-in-out infinite' : 'none',
+                position: 'relative'
               }}
             />
           </div>
@@ -314,8 +315,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
           }
           
           @keyframes progressMove {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
           }
         `}
       </style>

@@ -89,6 +89,8 @@ const App: React.FC = () => {
     return (
       <SplashScreen
         onAnimationComplete={handleSkipSplash}
+        progress={splashAnimation.progress}
+        phase={splashAnimation.phase}
         config={{
           title: 'Pokedex',
           description: '',
