@@ -21,10 +21,12 @@ export interface SplashAnimationConfig {
   showTime?: number;
   progressStep?: number;
   autoHide?: boolean;
+  maxTimeout?: number;
   onPhaseChange?: (phase: SplashAnimationPhase) => void;
   onProgressChange?: (progress: number) => void;
   onComplete?: () => void;
   onError?: (error: Error) => void;
+  onTimeout?: () => void;
 }
 
 // 默认配置
@@ -33,10 +35,12 @@ const DEFAULT_CONFIG: Required<SplashAnimationConfig> = {
   showTime: 1500,
   progressStep: 2,
   autoHide: true,
+  maxTimeout: 12000,
   onPhaseChange: () => {},
   onProgressChange: () => {},
   onComplete: () => {},
-  onError: () => {}
+  onError: () => {},
+  onTimeout: () => {}
 };
 
 /**
@@ -50,10 +54,12 @@ export const useSplashAnimation = (userConfig?: SplashAnimationConfig) => {
     showTime,
     progressStep,
     autoHide,
+    maxTimeout,
     onPhaseChange,
     onProgressChange,
     onComplete,
-    onError
+    onError,
+    onTimeout
   } = config;
 
   // 状态管理
@@ -67,7 +73,28 @@ export const useSplashAnimation = (userConfig?: SplashAnimationConfig) => {
   // 引用管理
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
+
+  // 关键修复：使用 ref 保存回调函数，避免依赖变化
+  const callbacksRef = useRef({
+    onPhaseChange,
+    onProgressChange,
+    onComplete,
+    onError,
+    onTimeout
+  });
+
+  // 更新回调引用（但不触发重新渲染）
+  useEffect(() => {
+    callbacksRef.current = {
+      onPhaseChange,
+      onProgressChange,
+      onComplete,
+      onError,
+      onTimeout
+    };
+  });
 
   // 安全的状态更新函数
   const safeSetState = useCallback((updater: (prev: SplashAnimationState) => SplashAnimationState) => {
@@ -86,6 +113,10 @@ export const useSplashAnimation = (userConfig?: SplashAnimationConfig) => {
       clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
     }
+    if (timeoutTimerRef.current) {
+      clearTimeout(timeoutTimerRef.current);
+      timeoutTimerRef.current = null;
+    }
   }, []);
 
   // 手动隐藏动画
@@ -93,24 +124,31 @@ export const useSplashAnimation = (userConfig?: SplashAnimationConfig) => {
     try {
       clearTimers();
       safeSetState(prev => {
-        const newState = {
-          ...prev,
-          phase: SplashAnimationPhase.HIDDEN,
-          isVisible: false
-        };
-        onPhaseChange(newState.phase);
-        return newState;
+        // 只有在未隐藏状态下才执行隐藏操作
+        if (prev.phase !== SplashAnimationPhase.HIDDEN) {
+          const newState = {
+            ...prev,
+            phase: SplashAnimationPhase.HIDDEN,
+            isVisible: false
+          };
+          callbacksRef.current.onPhaseChange(newState.phase);
+          setTimeout(() => {
+            callbacksRef.current.onComplete();
+          }, 0);
+          return newState;
+        }
+        return prev;
       });
-      onComplete();
     } catch (error) {
       console.error('Error hiding splash animation:', error);
-      onError(error as Error);
+      callbacksRef.current.onError(error as Error);
     }
-  }, [clearTimers, safeSetState, onPhaseChange, onComplete, onError]);
+  }, [clearTimers, safeSetState]);
 
   // 手动显示动画
   const show = useCallback(() => {
     try {
+      clearTimers();
       safeSetState(prev => {
         const newState = {
           ...prev,
@@ -119,14 +157,14 @@ export const useSplashAnimation = (userConfig?: SplashAnimationConfig) => {
           isVisible: true,
           hasError: false
         };
-        onPhaseChange(newState.phase);
+        callbacksRef.current.onPhaseChange(newState.phase);
         return newState;
       });
     } catch (error) {
       console.error('Error showing splash animation:', error);
-      onError(error as Error);
+      callbacksRef.current.onError(error as Error);
     }
-  }, [safeSetState, onPhaseChange, onError]);
+  }, [clearTimers, safeSetState]);
 
   // 重置动画状态
   const reset = useCallback(() => {
@@ -140,19 +178,27 @@ export const useSplashAnimation = (userConfig?: SplashAnimationConfig) => {
       }));
     } catch (error) {
       console.error('Error resetting splash animation:', error);
-      onError(error as Error);
+      callbacksRef.current.onError(error as Error);
     }
-  }, [clearTimers, safeSetState, onError]);
+  }, [clearTimers, safeSetState]);
 
   // 设置错误状态
   const setError = useCallback((error: Error) => {
     clearTimers();
     safeSetState(prev => ({
       ...prev,
-      hasError: true
+      hasError: true,
+      isVisible: false
     }));
-    onError(error);
-  }, [clearTimers, safeSetState, onError]);
+    callbacksRef.current.onError(error);
+  }, [clearTimers, safeSetState]);
+
+  // 强制超时处理
+  const forceTimeout = useCallback(() => {
+    console.warn(`Splash animation timed out after ${maxTimeout}ms`);
+    callbacksRef.current.onTimeout();
+    hide();
+  }, [maxTimeout, hide]);
 
   // 主要动画逻辑
   useEffect(() => {
@@ -161,8 +207,15 @@ export const useSplashAnimation = (userConfig?: SplashAnimationConfig) => {
     }
 
     try {
+      // 设置最大超时保护
+      timeoutTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          forceTimeout();
+        }
+      }, maxTimeout);
+
       // 进度更新逻辑
-      const progressUpdateInterval = duration / (100 / progressStep);
+      const progressUpdateInterval = Math.max(duration / (100 / progressStep), 16);
       
       progressIntervalRef.current = setInterval(() => {
         if (!isMountedRef.current) return;
@@ -171,12 +224,18 @@ export const useSplashAnimation = (userConfig?: SplashAnimationConfig) => {
           const newProgress = Math.min(prev.progress + progressStep, 100);
           const newPhase = newProgress === 100 ? SplashAnimationPhase.LOADED : prev.phase;
           
-          // 触发回调
-          if (newProgress !== prev.progress) {
-            onProgressChange(newProgress);
-          }
-          if (newPhase !== prev.phase) {
-            onPhaseChange(newPhase);
+          // 只在有实际变化时才执行回调
+          if (newProgress !== prev.progress || newPhase !== prev.phase) {
+            try {
+              if (newProgress !== prev.progress) {
+                callbacksRef.current.onProgressChange(newProgress);
+              }
+              if (newPhase !== prev.phase) {
+                callbacksRef.current.onPhaseChange(newPhase);
+              }
+            } catch (callbackError) {
+              console.error('Error in animation callbacks:', callbackError);
+            }
           }
           
           return {
@@ -189,11 +248,12 @@ export const useSplashAnimation = (userConfig?: SplashAnimationConfig) => {
 
       // 自动隐藏逻辑
       if (autoHide) {
+        const totalDuration = duration + showTime;
         hideTimerRef.current = setTimeout(() => {
           if (isMountedRef.current) {
             hide();
           }
-        }, duration + showTime);
+        }, totalDuration);
       }
 
     } catch (error) {
@@ -210,14 +270,12 @@ export const useSplashAnimation = (userConfig?: SplashAnimationConfig) => {
     showTime,
     progressStep,
     autoHide,
-    animationState.isVisible,
-    animationState.hasError,
+    maxTimeout,
     hide,
     setError,
     safeSetState,
-    onProgressChange,
-    onPhaseChange,
-    clearTimers
+    clearTimers,
+    forceTimeout
   ]);
 
   // 组件卸载时的清理
@@ -230,30 +288,27 @@ export const useSplashAnimation = (userConfig?: SplashAnimationConfig) => {
 
   // 返回状态和控制函数
   return {
-    // 状态
     ...animationState,
     
-    // 计算属性
     isLoading: animationState.phase === SplashAnimationPhase.LOADING,
     isLoaded: animationState.phase === SplashAnimationPhase.LOADED,
     isHidden: animationState.phase === SplashAnimationPhase.HIDDEN,
     isComplete: animationState.progress === 100,
     
-    // 控制函数
     hide,
     show,
     reset,
     setError,
+    forceTimeout,
     
-    // 配置信息
     config: {
       duration,
       showTime,
       progressStep,
-      autoHide
+      autoHide,
+      maxTimeout
     }
   };
 };
 
-// 导出Hook作为默认导出
 export default useSplashAnimation; 

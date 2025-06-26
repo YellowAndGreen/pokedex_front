@@ -13,83 +13,73 @@ import useSplashAnimation, { SplashAnimationPhase } from './hooks/useSplashAnima
 
 const App: React.FC = () => {
   const [isAppReady, setIsAppReady] = useState(false);
-  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
-  // 配置开屏动画
+  // 配置开屏动画 - 优化后的简化配置
   const splashAnimation = useSplashAnimation({
     duration: 3000,
     showTime: 1000,
     autoHide: true,
-    onPhaseChange: (phase) => {
-      console.log('Splash animation phase:', phase);
-    },
-    onProgressChange: (progress) => {
-      // 当进度达到80%时，开始预加载主应用
-      if (progress >= 80 && !initialDataLoaded) {
-        setInitialDataLoaded(true);
-      }
-    },
+    maxTimeout: 8000,
     onComplete: () => {
-      console.log('Splash animation completed');
       setIsAppReady(true);
     },
     onError: (error) => {
       console.error('Splash animation error:', error);
-      // 出错时也要显示主应用
+      setIsAppReady(true);
+    },
+    onTimeout: () => {
+      console.warn('Splash animation timed out');
       setIsAppReady(true);
     }
   });
 
-  // 添加超时保护机制，防止首屏动画卡死
+  // 简化的极端超时保护
   useEffect(() => {
-    const maxWaitTime = 10000; // 最多等待10秒
+    const extremeTimeout = 16000;
+    
     const timeoutId = setTimeout(() => {
       if (!isAppReady) {
-        console.warn('Splash animation timeout, forcing app to show');
+        console.error('Extreme timeout - forcing app to show');
         setIsAppReady(true);
       }
-    }, maxWaitTime);
+    }, extremeTimeout);
 
     return () => clearTimeout(timeoutId);
-  }, [isAppReady]);
-
-  // 模拟应用初始化和数据预加载
-  useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // 模拟关键数据的预加载
-        await Promise.all([
-          // 模拟API调用
-          new Promise(resolve => setTimeout(resolve, 500)),
-          // 模拟资源加载
-          new Promise(resolve => setTimeout(resolve, 300)),
-        ]);
-        
-        console.log('App initialization completed');
-      } catch (error) {
-        console.error('App initialization error:', error);
-      }
-    };
-
-    if (initialDataLoaded) {
-      initializeApp();
-    }
-  }, [initialDataLoaded]);
+  }, []);
 
   // 手动跳过开屏动画的处理函数
   const handleSkipSplash = useCallback(() => {
-    splashAnimation.hide();
-    setIsAppReady(true);
+    try {
+      splashAnimation.hide();
+      setIsAppReady(true);
+    } catch (error) {
+      console.error('Error skipping splash:', error);
+      setIsAppReady(true);
+    }
   }, [splashAnimation]);
 
-  // 如果开屏动画还在显示，渲染开屏动画
-  if (!splashAnimation.isHidden && !isAppReady) {
+  // 添加键盘快捷键跳过动画
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isAppReady) {
+        handleSkipSplash();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isAppReady, handleSkipSplash]);
+
+  // 简化渲染逻辑：仅基于 isAppReady 判断
+  if (!isAppReady) {
     return (
       <SplashScreen
         onAnimationComplete={handleSkipSplash}
+        progress={splashAnimation.progress}
+        phase={splashAnimation.phase}
         config={{
           title: 'Pokedex',
-          description: '',
+          description: '正在加载应用...',
           duration: splashAnimation.config.duration,
           showTime: splashAnimation.config.showTime
         }}
