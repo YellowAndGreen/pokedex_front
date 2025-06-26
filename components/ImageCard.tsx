@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import type { ImageRead } from '../types';
 import { ImagePlaceholderIcon } from './icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { IMAGE_BASE_URL } from '../constants'; // Changed from API_BASE_URL to IMAGE_BASE_URL
+import { cardVariants, imageVariants, getAnimationConfig } from '../utils/animations';
 
 interface ImageCardProps {
   image: ImageRead;
@@ -34,9 +36,9 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, onClick, forceSquare = tru
   const placeholderContainerClasses = `w-full flex items-center justify-center ${theme.skeletonBase} ${theme.skeletonHighlight} ${forceSquare ? 'aspect-square' : 'min-h-[150px] sm:min-h-[200px]'}`;
 
   return (
-    <div
+    <motion.div
       onClick={onClick}
-      className={`${theme.card.bg} ${theme.card.rounded} ${theme.card.shadow} ${theme.card.hoverShadow} ${theme.card.border || ''} ${theme.card.transition} overflow-hidden cursor-pointer group flex flex-col`}
+      className={`${theme.card.bg} ${theme.card.rounded} ${theme.card.shadow} ${theme.card.hoverShadow} ${theme.card.border || ''} overflow-hidden cursor-pointer group flex flex-col`}
       role='button'
       tabIndex={0}
       onKeyDown={e => {
@@ -45,40 +47,69 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, onClick, forceSquare = tru
         }
       }}
       aria-label={`View details for ${image.title || 'image'}`}
+      variants={getAnimationConfig(cardVariants)}
+      initial="hidden"
+      animate="visible"
+      whileHover="hover"
+      whileTap="tap"
     >
       <div className={imageContainerClasses}>
         {primarySrc && !imageLoadError ? (
-          <img
+          <motion.img
             src={primarySrc}
             alt={image.title || 'Image'}
             className={imgClasses}
             onError={() => setImageLoadError(true)}
+            variants={getAnimationConfig(imageVariants)}
+            initial="hidden"
+            animate="visible"
+            whileHover="hover"
           />
         ) : (
-          <div className={placeholderContainerClasses}>
-            <ImagePlaceholderIcon
-              className={`w-10 h-10 sm:w-12 sm:h-12 opacity-50 ${theme.card.secondaryText}`}
-            />
-          </div>
+          <motion.div 
+            className={placeholderContainerClasses}
+            variants={getAnimationConfig(imageVariants)}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+            >
+              <ImagePlaceholderIcon
+                className={`w-10 h-10 sm:w-12 sm:h-12 opacity-50 ${theme.card.secondaryText}`}
+              />
+            </motion.div>
+          </motion.div>
         )}
-        <div
-          className={`absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 ${theme.card.transition} duration-300 flex items-center justify-center`}
+        <motion.div
+          className={`absolute inset-0 bg-black flex items-center justify-center`}
+          initial={{ opacity: 0 }}
+          whileHover={{ opacity: 0.2 }}
+          transition={{ duration: 0.3 }}
         >
           {/* This div is for hover overlay effect only */}
-        </div>
+        </motion.div>
       </div>
       {(image.title || image.original_filename) && (
-        <div className='p-3 mt-auto'>
-          {' '}
-          {/* Added mt-auto to push title to bottom if card flex height is larger */}
-          <h4
-            className={`text-sm font-medium ${theme.card.text} ${theme.card.titleHover} truncate ${theme.card.transition} duration-200`}
+        <motion.div 
+          className='p-3 mt-auto'
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.3 }}
+        >
+          <motion.h4
+            className={`text-sm font-medium ${theme.card.text} ${theme.card.titleHover} truncate transition-colors duration-200`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.15, duration: 0.2 }}
           >
             {image.title || image.original_filename}
-          </h4>
-        </div>
+          </motion.h4>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

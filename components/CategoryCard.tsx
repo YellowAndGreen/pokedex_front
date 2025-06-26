@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import type { CategoryRead } from '../types';
 import { ImagePlaceholderIcon } from './icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { IMAGE_BASE_URL } from '../constants'; // Changed from API_BASE_URL to IMAGE_BASE_URL
+import { cardVariants, imageVariants, getAnimationConfig } from '../utils/animations';
 
 interface CategoryCardProps {
   category: CategoryRead;
@@ -48,50 +50,82 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
     group-hover:scale-105`;
 
   return (
-    <Link
-      to={`/categories/${category.id}`}
+    <motion.div
+      variants={getAnimationConfig(cardVariants)}
+      initial="hidden"
+      animate="visible"
+      whileHover="hover"
+      whileTap="tap"
       className={cardClasses}
-      aria-label={`View category: ${category.name}`}
     >
-      <div className={imageContainerBaseClasses}>
-        {transformedThumbnailUrl && !imageLoadError ? (
-          <img
-            src={transformedThumbnailUrl}
-            alt={category.name}
-            className={imageClasses}
-            onError={() => setImageLoadError(true)}
-          />
-        ) : (
-          // Fallback: no thumbnail_url OR it failed to load
-          <div
-            className={`w-full h-full flex items-center justify-center ${theme.skeletonBase} ${transformedThumbnailUrl && imageLoadError ? theme.skeletonHighlight : ''}`}
-          >
-            <ImagePlaceholderIcon
-              className={`w-10 h-10 sm:w-12 sm:h-12 opacity-60 ${theme.card.secondaryText}`}
+      <Link
+        to={`/categories/${category.id}`}
+        aria-label={`View category: ${category.name}`}
+        className="block w-full h-full"
+      >
+        <div className={imageContainerBaseClasses}>
+          {transformedThumbnailUrl && !imageLoadError ? (
+            <motion.img
+              src={transformedThumbnailUrl}
+              alt={category.name}
+              className={imageClasses}
+              onError={() => setImageLoadError(true)}
+              variants={getAnimationConfig(imageVariants)}
+              initial="hidden"
+              animate="visible"
+              whileHover="hover"
             />
-          </div>
-        )}
-        {/* Overlay is always present over the image/placeholder area */}
-        <div
-          className={`absolute inset-0 bg-black bg-opacity-20 group-hover:bg-opacity-10 transition-colors duration-300 flex items-center justify-center`}
-        >
-          {/* Intentionally empty: overlay effect only */}
-        </div>
-      </div>
-
-      {showCompactDetails && (
-        <div className={`p-2.5 sm:p-3 ${theme.card.bg}`}>
-          <p className={`text-xs ${theme.card.secondaryText} mb-0.5`}>
-            No. {displayIndex !== undefined ? String(displayIndex).padStart(3, '0') : '???'}
-          </p>
-          <h3
-            className={`text-sm font-semibold ${theme.card.text} ${theme.card.titleHover} transition-colors duration-200 truncate`}
+          ) : (
+            // Fallback: no thumbnail_url OR it failed to load
+            <motion.div
+              className={`w-full h-full flex items-center justify-center ${theme.skeletonBase} ${transformedThumbnailUrl && imageLoadError ? theme.skeletonHighlight : ''}`}
+              variants={getAnimationConfig(imageVariants)}
+              initial="hidden"
+              animate="visible"
+            >
+              <ImagePlaceholderIcon
+                className={`w-10 h-10 sm:w-12 sm:h-12 opacity-60 ${theme.card.secondaryText}`}
+              />
+            </motion.div>
+          )}
+          {/* Overlay with enhanced animation */}
+          <motion.div
+            className={`absolute inset-0 bg-black flex items-center justify-center`}
+            initial={{ opacity: 0.2 }}
+            whileHover={{ opacity: 0.1 }}
+            transition={{ duration: 0.3 }}
           >
-            {category.name}
-          </h3>
+            {/* Intentionally empty: overlay effect only */}
+          </motion.div>
         </div>
-      )}
-    </Link>
+
+        {showCompactDetails && (
+          <motion.div 
+            className={`p-2.5 sm:p-3 ${theme.card.bg}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
+            <motion.p 
+              className={`text-xs ${theme.card.secondaryText} mb-0.5`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.15, duration: 0.2 }}
+            >
+              No. {displayIndex !== undefined ? String(displayIndex).padStart(3, '0') : '???'}
+            </motion.p>
+            <motion.h3
+              className={`text-sm font-semibold ${theme.card.text} ${theme.card.titleHover} transition-colors duration-200 truncate`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.2 }}
+            >
+              {category.name}
+            </motion.h3>
+          </motion.div>
+        )}
+      </Link>
+    </motion.div>
   );
 };
 

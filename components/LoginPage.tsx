@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { sendVerificationCode, verifyCodeAndGetToken } from '../services/api';
@@ -6,6 +7,7 @@ import type { ApiError } from '../types';
 import ErrorDisplay from './ErrorDisplay';
 import LoadingSpinner from './LoadingSpinner';
 import { useAuth } from '../contexts/AuthContext'; // Import useAuth
+import { fadeInVariants, staggerContainerVariants, staggerItemVariants, getAnimationConfig } from '../utils/animations';
 
 const LoginPage: React.FC = () => {
   const { theme } = useTheme();
@@ -81,35 +83,53 @@ const LoginPage: React.FC = () => {
   const buttonSecondaryClasses = `w-full px-4 py-2 ${theme.button.secondary} ${theme.button.secondaryText} ${theme.card.rounded} transition disabled:opacity-70 text-sm sm:text-base flex justify-center items-center`;
 
   return (
-    <div
-      className={`min-h-[calc(100vh-10rem)] flex flex-col items-center justify-center ${theme.bg} p-4 animate-fadeInUp`}
+    <motion.div
+      className={`min-h-[calc(100vh-10rem)] flex flex-col items-center justify-center ${theme.bg} p-4`}
+      variants={getAnimationConfig(fadeInVariants)}
+      initial="hidden"
+      animate="visible"
+      transition={{ duration: 0.6 }}
     >
-      <div
+      <motion.div
         className={`w-full max-w-md p-6 sm:p-8 ${theme.card.bg} ${theme.card.rounded} ${theme.card.shadow} ${theme.card.border || ''}`}
+        variants={getAnimationConfig(staggerContainerVariants)}
+        initial="hidden"
+        animate="visible"
       >
-        <h2
+        <motion.h2
           className={`text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8 ${theme.modal.titleText}`}
+          variants={getAnimationConfig(staggerItemVariants)}
         >
           Login / Register
-        </h2>
+        </motion.h2>
 
         {error && (
-          <div className='mb-4'>
+          <motion.div 
+            className='mb-4'
+            variants={getAnimationConfig(staggerItemVariants)}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <ErrorDisplay error={error} />
-          </div>
+          </motion.div>
         )}
         {successMessage && (
-          <div
+          <motion.div
             className={`mb-4 p-3 ${theme.button.primary.replace('bg-', 'bg-').replace('hover:bg-', '')} bg-opacity-20 ${theme.button.primaryText.replace('text-', 'text-')} text-opacity-80 ${theme.card.rounded} text-sm`}
             role='alert'
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
           >
             {successMessage}
-          </div>
+          </motion.div>
         )}
 
-        <form
+        <motion.form
           onSubmit={isCodeSent ? handleLogin : handleGetCode}
           className='space-y-5 sm:space-y-6'
+          variants={getAnimationConfig(staggerItemVariants)}
         >
           <div>
             <label htmlFor='email' className={`block text-sm font-medium ${theme.card.text}`}>
@@ -164,7 +184,7 @@ const LoginPage: React.FC = () => {
               {isLoading ? <LoadingSpinner size='sm' /> : 'Login'}
             </button>
           )}
-        </form>
+        </motion.form>
         {isCodeSent && (
           <button
             onClick={() => {
@@ -179,8 +199,8 @@ const LoginPage: React.FC = () => {
             Entered wrong email? Change email.
           </button>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

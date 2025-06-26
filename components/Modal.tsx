@@ -1,6 +1,8 @@
 import React, { useEffect, useId, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
 import { XMarkIcon } from './icons';
+import { modalVariants, backdropVariants, getAnimationConfig } from '../utils/animations';
 
 interface ModalProps {
   isOpen: boolean;
@@ -12,36 +14,12 @@ interface ModalProps {
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
   const { theme } = useTheme();
-  const [isMounted, setIsMounted] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
 
   // Use React.useId for generating unique IDs for ARIA attributes
   const titleId = `modal-title-${useId()}`;
 
   useEffect(() => {
-    let openTimer: ReturnType<typeof setTimeout>;
-    let closeTimer: ReturnType<typeof setTimeout>;
-
     if (isOpen) {
-      setIsMounted(true);
-      openTimer = setTimeout(() => {
-        setIsVisible(true);
-      }, 10);
-    } else {
-      setIsVisible(false);
-      closeTimer = setTimeout(() => {
-        setIsMounted(false);
-      }, 300);
-    }
-
-    return () => {
-      clearTimeout(openTimer);
-      clearTimeout(closeTimer);
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (isVisible) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -49,11 +27,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isVisible]);
-
-  if (!isMounted) {
-    return null;
-  }
+  }, [isOpen]);
 
   const sizeClasses = {
     sm: 'max-w-sm',
@@ -64,56 +38,76 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
   };
 
   return (
-    <>
-      {/* Backdrop: z-index 30 (below header which is z-40) */}
-      <div
-        className={`fixed inset-0 z-30 
-                    transition-opacity duration-300 ease-in-out 
-                    bg-black ${isVisible ? 'bg-opacity-60 dark:bg-opacity-75 backdrop-blur-sm' : 'bg-opacity-0 pointer-events-none'}`}
-        onClick={onClose}
-        aria-hidden='true'
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop with enhanced animation */}
+          <motion.div
+            className="fixed inset-0 z-30 bg-black backdrop-blur-sm"
+            onClick={onClose}
+            aria-hidden='true'
+            variants={getAnimationConfig(backdropVariants)}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          />
 
-      {/* Modal Dialog Positioning Wrapper: z-index 50 (above header) */}
-      <div
-        className={`fixed inset-0 flex justify-center items-center z-50 
-                    p-2 sm:p-4 
-                    ${isVisible ? '' : 'pointer-events-none'} 
-                    pointer-events-none`}
-      >
-        {/* Actual Modal Content Box */}
-        <div
-          className={`${theme.modal.bg} ${theme.modal.rounded} ${theme.modal.shadow} 
-                     w-full ${sizeClasses[size]} p-4 sm:p-6 
-                     transform transition-all duration-300 modal-transition 
-                     ${isVisible ? 'scale-100 opacity-100' : 'scale-90 opacity-0'}
-                     pointer-events-auto`} // Make content interactive
-          onClick={e => e.stopPropagation()} // Prevent clicks on content from closing modal
-          role='dialog'
-          aria-modal='true'
-          aria-labelledby={titleId}
-        >
-          <div className='flex justify-between items-center mb-3 sm:mb-4'>
-            <h2
-              id={titleId}
-              className={`text-lg sm:text-xl font-semibold ${theme.modal.titleText}`}
+          {/* Modal Dialog Positioning Wrapper: z-index 50 (above header) */}
+          <div className="fixed inset-0 flex justify-center items-center z-50 p-2 sm:p-4">
+            {/* Actual Modal Content Box with enhanced animation */}
+            <motion.div
+              className={`${theme.modal.bg} ${theme.modal.rounded} ${theme.modal.shadow} 
+                         w-full ${sizeClasses[size]} p-4 sm:p-6`}
+              onClick={e => e.stopPropagation()} // Prevent clicks on content from closing modal
+              role='dialog'
+              aria-modal='true'
+              aria-labelledby={titleId}
+              variants={getAnimationConfig(modalVariants)}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
             >
-              {title}
-            </h2>
-            <button
-              onClick={onClose}
-              className={`${theme.iconButton} ${theme.button.transition} p-1 rounded-full hover:bg-opacity-20 focus:outline-none focus:ring-2 ${theme.input.focusRing.replace('focus:ring-2', '').trim()}`}
-              aria-label='Close modal'
-            >
-              <XMarkIcon className='w-5 h-5 sm:w-6 sm:h-6' />
-            </button>
+              <motion.div 
+                className='flex justify-between items-center mb-3 sm:mb-4'
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.2 }}
+              >
+                <motion.h2
+                  id={titleId}
+                  className={`text-lg sm:text-xl font-semibold ${theme.modal.titleText}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.15, duration: 0.2 }}
+                >
+                  {title}
+                </motion.h2>
+                <motion.button
+                  onClick={onClose}
+                  className={`${theme.iconButton} ${theme.button.transition} p-1 rounded-full hover:bg-opacity-20 focus:outline-none focus:ring-2 ${theme.input.focusRing.replace('focus:ring-2', '').trim()}`}
+                  aria-label='Close modal'
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.2 }}
+                >
+                  <XMarkIcon className='w-5 h-5 sm:w-6 sm:h-6' />
+                </motion.button>
+              </motion.div>
+              <motion.div 
+                className='overflow-y-auto max-h-[80vh] sm:max-h-[75vh] md:max-h-[70vh] pr-1 scrollbar-thin'
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+              >
+                {children}
+              </motion.div>
+            </motion.div>
           </div>
-          <div className='overflow-y-auto max-h-[80vh] sm:max-h-[75vh] md:max-h-[70vh] pr-1 scrollbar-thin'>
-            {children}
-          </div>
-        </div>
-      </div>
-    </>
+        </>
+      )}
+    </AnimatePresence>
   );
 };
 

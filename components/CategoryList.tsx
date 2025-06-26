@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { staggerContainerVariants, staggerItemVariants, getAnimationConfig } from '../utils/animations';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext'; // Import useAuth
 import { useCategories } from '../contexts/CategoryContext';
@@ -256,16 +257,26 @@ const CategoryList: React.FC = () => {
     }
 
     return (
-      <div className={gridClasses} style={gridStyle}>
+      <motion.div 
+        className={gridClasses} 
+        style={gridStyle}
+        variants={getAnimationConfig(staggerContainerVariants)}
+        initial="hidden"
+        animate="visible"
+      >
         {paginatedCategories.map((category, index) => {
           const displayIndex = (currentPage - 1) * itemsPerPage + index + 1;
           return (
             <motion.div
               key={category.id}
               layout
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05, duration: 0.4, ease: 'easeOut' }}
+              variants={getAnimationConfig(staggerItemVariants)}
+              layoutId={`category-${category.id}`}
+              whileHover={{ scale: 1.02 }}
+              transition={{ 
+                layout: { duration: 0.4, ease: 'easeInOut' },
+                scale: { duration: 0.2, ease: 'easeOut' }
+              }}
             >
               <CategoryCard
                 category={category}
@@ -275,7 +286,7 @@ const CategoryList: React.FC = () => {
             </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     );
   };
 

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
+import { fadeInVariants, staggerContainerVariants, staggerItemVariants, getAnimationConfig } from '../utils/animations';
 import {
   TimeIcon,
   TwitterIcon,
@@ -533,15 +535,35 @@ const AnalyticsPage: React.FC = () => {
   }, [theme.name, theme.brandColor, isDarkMode]);
 
   return (
-    <div className={`py-4 sm:py-5 ${theme.text} space-y-6`}>
-      <div
+    <motion.div 
+      className={`py-4 sm:py-5 ${theme.text} space-y-6`}
+      variants={getAnimationConfig(staggerContainerVariants)}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.div
         className={`flex flex-col ${theme.card.bg} ${theme.card.rounded} ${theme.card.shadow} ${theme.card.border || ''} p-4 sm:p-6`}
+        variants={getAnimationConfig(staggerItemVariants)}
       >
         <div className='w-full'>
-          <h1 className='text-2xl sm:text-3xl font-semibold mb-1'>Welcome back 👋🏻</h1>
-          <p className={`${theme.card.secondaryText} text-sm sm:text-base mb-6 max-w-md`}>
+          <motion.h1 
+            className='text-2xl sm:text-3xl font-semibold mb-1'
+            variants={getAnimationConfig(fadeInVariants)}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            Welcome back 👋🏻
+          </motion.h1>
+          <motion.p 
+            className={`${theme.card.secondaryText} text-sm sm:text-base mb-6 max-w-md`}
+            variants={getAnimationConfig(fadeInVariants)}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.4, duration: 0.5 }}
+          >
             Let's birding!
-          </p>
+          </motion.p>
           {isLoadingSummary ? (
             <div className='flex justify-center items-center h-20'>
               <LoadingSpinner />
@@ -579,7 +601,7 @@ const AnalyticsPage: React.FC = () => {
             )
           )}
         </div>
-      </div>
+      </motion.div>
 
       <div className='grid grid-cols-1 lg:grid-cols-4 gap-5 sm:gap-6'>
         <div
@@ -706,7 +728,7 @@ const AnalyticsPage: React.FC = () => {
           )
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
