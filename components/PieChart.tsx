@@ -3,80 +3,96 @@ import { initChart, setChartOption, addResponsiveSupport, disposeChart, createBa
 import type { ECharts } from '../services/echarts';
 import { useTheme } from '../contexts/ThemeContext';
 
-interface PieChartData {
+interface PieChartDataItem {
   name: string;
   value: number;
 }
 
 interface PieChartProps {
-  data: PieChartData[];
-  title?: string;
-  className?: string;
-  colors?: string[]; // 支持外部传入的颜色配置
+  data: PieChartDataItem[];
+  colors: string[];
 }
 
-const PieChart: React.FC<PieChartProps> = ({ data, title = '数据分布', className = '', colors: externalColors }) => {
+const PieChart: React.FC<PieChartProps> = ({ data, colors }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<ECharts | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
-  const { themeName, isDarkMode } = useTheme();
+  const { theme, isDarkMode } = useTheme();
 
   useEffect(() => {
     if (!chartRef.current) return;
 
     // 初始化图表
-    const chart = initChart(chartRef.current, undefined, 'pie-chart');
+    const chart = initChart(chartRef.current, isDarkMode ? 'dark' : undefined, 'pie-chart');
     chartInstanceRef.current = chart;
 
     // 添加响应式支持
     cleanupRef.current = addResponsiveSupport(chart);
 
-    // 配置图表选项
-    const themeColors = getThemeColors(themeName, isDarkMode);
-    const baseOption = createBaseChartOption(themeName, isDarkMode);
-    
-    // 使用外部传入的颜色或主题颜色
-    const chartColors = externalColors || themeColors.series;
+    if (data.length === 0) {
+      chart.clear();
+      return;
+    }
 
+    // 恢复原始的饼状图配置，包含玫瑰图设置
     const option = {
-      ...baseOption,
-      color: chartColors, // 设置图表颜色
       title: {
-        text: title,
+        text: '鸟种记录次数分布 (玫瑰图)',
         left: 'center',
+        top: 10, // Reduced top margin
         textStyle: {
-          color: themeColors.text,
-          fontSize: 16,
-          fontWeight: 'bold'
-        }
+          fontSize: 18,
+          fontWeight: 'bold',
+          color: theme.card.text,
+        },
       },
       tooltip: {
-        ...baseOption.tooltip,
         trigger: 'item',
-        formatter: '{a} <br/>{b}: {c} ({d}%)'
+        formatter: '{a} <br/>{b}: {c} ({d}%)',
       },
       legend: {
-        orient: 'vertical',
-        left: 'left',
+        top: 'bottom',
+        data: data.map(item => item.name),
         textStyle: {
-          color: themeColors.text
-        }
+          color: theme.card.secondaryText,
+          fontSize: 11,
+        },
+        padding: [10, 5, 5, 5], // Reduced top padding
+        itemGap: 8,
+      },
+      toolbox: {
+        // Toolbox is now hidden
+        show: false,
       },
       series: [
         {
-          name: title,
+          name: '记录次数',
           type: 'pie',
-          radius: '50%',
+          radius: ['20%', '75%'], // Increased radius
+          center: ['50%', '45%'], // Adjusted center for better vertical space utilization
+          roseType: 'area', // 关键：恢复玫瑰图设置
+          itemStyle: {
+            borderRadius: 8,
+            borderColor: theme.card.bg,
+            borderWidth: 0,
+          },
           data: data,
+          label: {
+            show: false,
+          },
+          labelLine: {
+            show: false,
+          },
           emphasis: {
             itemStyle: {
               shadowBlur: 10,
               shadowOffsetX: 0,
-              shadowColor: 'rgba(0, 0, 0, 0.5)'
-            }
-          }
-        }
-      ]
+              shadowColor: 'rgba(0, 0, 0, 0.3)',
+            },
+          },
+          color: colors,
+        },
+      ],
     };
 
     setChartOption(chart, option);
@@ -90,12 +106,25 @@ const PieChart: React.FC<PieChartProps> = ({ data, title = '数据分布', class
       disposeChart('pie-chart');
       chartInstanceRef.current = null;
     };
-  }, [data, title, themeName, isDarkMode, externalColors]);
+  }, [data, colors, theme, isDarkMode]);
+
+  if (data.length === 0) {
+    return (
+      <div
+        className={`w-full h-full flex items-center justify-center ${theme.card.secondaryText}`}
+        style={{ minHeight: '200px' }}
+      >
+        No data to display for the pie chart.
+      </div>
+    );
+  }
 
   return (
-    <div className={`w-full h-80 ${className}`}>
-      <div ref={chartRef} className="w-full h-full" />
-    </div>
+    <div
+      ref={chartRef}
+      style={{ width: '100%', height: '100%' }}
+      aria-label='Top 10 bird species rose pie chart'
+    />
   );
 };
 

@@ -188,8 +188,10 @@ const AnalyticsPage: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const rawData: RawRegionStat[] = await response.json();
+      
+      // 直接使用简化名称，保持数据一致性
       const processedData: RegionBirdData[] = rawData.map(item => ({
-        name: item.name,
+        name: item.name, // 保持原始简化名称
         value: item.totalSpecies,
         tooltipData: {
           species: item.totalSpecies,

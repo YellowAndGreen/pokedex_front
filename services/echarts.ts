@@ -6,56 +6,136 @@
 import * as echarts from 'echarts';
 import type { EChartsOption, ECharts } from 'echarts';
 
-// 注册中国地图 - 使用简化的地图数据
-const registerChinaMap = () => {
-  // 简化的中国省份地图数据
-  const chinaGeoJson = {
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        properties: { name: "北京" },
-        geometry: {
-          type: "Polygon",
-          coordinates: [[[116.4, 39.9], [116.5, 39.9], [116.5, 40.0], [116.4, 40.0], [116.4, 39.9]]]
-        }
-      },
-      {
-        type: "Feature", 
-        properties: { name: "上海" },
-        geometry: {
-          type: "Polygon",
-          coordinates: [[[121.4, 31.2], [121.5, 31.2], [121.5, 31.3], [121.4, 31.3], [121.4, 31.2]]]
-        }
-      },
-      {
-        type: "Feature",
-        properties: { name: "广东" },
-        geometry: {
-          type: "Polygon", 
-          coordinates: [[[113.2, 23.1], [113.3, 23.1], [113.3, 23.2], [113.2, 23.2], [113.2, 23.1]]]
-        }
-      },
-      {
-        type: "Feature",
-        properties: { name: "江苏" },
-        geometry: {
-          type: "Polygon",
-          coordinates: [[[118.7, 32.0], [118.8, 32.0], [118.8, 32.1], [118.7, 32.1], [118.7, 32.0]]]
-        }
-      },
-      {
-        type: "Feature",
-        properties: { name: "浙江" },
-        geometry: {
-          type: "Polygon",
-          coordinates: [[[120.1, 30.2], [120.2, 30.2], [120.2, 30.3], [120.1, 30.3], [120.1, 30.2]]]
-        }
+// 地图注册状态
+let isMapRegistered = false;
+let mapRegistrationPromise: Promise<void> | null = null;
+
+// 注册中国地图 - 使用真实的中国地图数据
+const registerChinaMap = async (): Promise<void> => {
+  if (isMapRegistered) {
+    return Promise.resolve();
+  }
+
+  if (mapRegistrationPromise) {
+    return mapRegistrationPromise;
+  }
+
+  mapRegistrationPromise = (async () => {
+    try {
+      // 动态加载中国地图数据
+      const response = await fetch('/china.json');
+      const chinaGeoJson = await response.json();
+      
+      // 名称映射：将完整名称转换为简化名称
+      const nameMapping: Record<string, string> = {
+        '北京市': '北京',
+        '天津市': '天津',
+        '河北省': '河北',
+        '山西省': '山西',
+        '内蒙古自治区': '内蒙古',
+        '辽宁省': '辽宁',
+        '吉林省': '吉林',
+        '黑龙江省': '黑龙江',
+        '上海市': '上海',
+        '江苏省': '江苏',
+        '浙江省': '浙江',
+        '安徽省': '安徽',
+        '福建省': '福建',
+        '江西省': '江西',
+        '山东省': '山东',
+        '河南省': '河南',
+        '湖北省': '湖北',
+        '湖南省': '湖南',
+        '广东省': '广东',
+        '广西壮族自治区': '广西',
+        '海南省': '海南',
+        '重庆市': '重庆',
+        '四川省': '四川',
+        '贵州省': '贵州',
+        '云南省': '云南',
+        '西藏自治区': '西藏',
+        '陕西省': '陕西',
+        '甘肃省': '甘肃',
+        '青海省': '青海',
+        '宁夏回族自治区': '宁夏',
+        '新疆维吾尔自治区': '新疆',
+        '香港特别行政区': '香港',
+        '澳门特别行政区': '澳门',
+        '台湾省': '台湾'
+      };
+      
+      // 转换地图数据中的省份名称为简化版本
+      if (chinaGeoJson.features) {
+        chinaGeoJson.features.forEach((feature: any) => {
+          if (feature.properties && feature.properties.name) {
+            const originalName = feature.properties.name;
+            const simplifiedName = nameMapping[originalName];
+            if (simplifiedName) {
+              feature.properties.name = simplifiedName;
+            }
+          }
+        });
       }
-    ]
-  };
-  
-  echarts.registerMap('china', chinaGeoJson as any);
+      
+      // 注册地图
+      echarts.registerMap('china', chinaGeoJson);
+      isMapRegistered = true;
+      console.log('中国地图数据加载成功，省份名称已转换为简化版本');
+    } catch (error) {
+      console.error('加载中国地图数据失败:', error);
+      // 如果加载失败，使用简化版本作为备份
+      const fallbackGeoJson = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties: { name: "北京" },
+            geometry: {
+              type: "Polygon",
+              coordinates: [[[116.0, 39.4], [117.4, 39.4], [117.4, 41.1], [115.4, 41.1], [115.4, 39.4], [116.0, 39.4]]]
+            }
+          },
+          {
+            type: "Feature", 
+            properties: { name: "上海" },
+            geometry: {
+              type: "Polygon",
+              coordinates: [[[120.9, 30.7], [122.2, 30.7], [122.2, 31.9], [120.9, 31.9], [120.9, 30.7]]]
+            }
+          },
+          {
+            type: "Feature",
+            properties: { name: "广东" },
+            geometry: {
+              type: "Polygon",
+              coordinates: [[[109.7, 20.2], [117.2, 20.2], [117.2, 25.5], [109.7, 25.5], [109.7, 20.2]]]
+            }
+          },
+          {
+            type: "Feature",
+            properties: { name: "四川" },
+            geometry: {
+              type: "Polygon",
+              coordinates: [[[97.3, 26.0], [108.5, 26.0], [108.5, 34.3], [97.3, 34.3], [97.3, 26.0]]]
+            }
+          },
+          {
+            type: "Feature",
+            properties: { name: "新疆" },
+            geometry: {
+              type: "Polygon",
+              coordinates: [[[73.4, 34.3], [96.4, 34.3], [96.4, 49.2], [73.4, 49.2], [73.4, 34.3]]]
+            }
+          }
+        ]
+      };
+      echarts.registerMap('china', fallbackGeoJson);
+      isMapRegistered = true;
+      console.log('使用备份地图数据');
+    }
+  })();
+
+  return mapRegistrationPromise;
 };
 
 // 图表实例管理
@@ -281,6 +361,14 @@ export function createBaseChartOption(theme: string, isDarkMode: boolean = false
       }
     }
   };
+}
+
+/**
+ * 确保地图已注册
+ * @returns Promise<void>
+ */
+export function ensureMapRegistered(): Promise<void> {
+  return registerChinaMap();
 }
 
 // 导出echarts核心对象供高级用法
